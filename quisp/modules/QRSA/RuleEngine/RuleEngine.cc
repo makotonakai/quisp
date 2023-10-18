@@ -145,6 +145,13 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto is_sender = pkt->getIsSender();
     if (is_sender) {
       respondToLinkAllocationUpdateMessage(pkt);
+    } else {
+      sendBarrierMessage(pkt);
+    }
+  } else if (auto *pkt = dynamic_cast<BarrierMessage *>(msg)) {
+    auto is_sender = pkt->getIsSender();
+    if (is_sender) {
+      respondToBarrierMessage(pkt);
     }
   }
   for (int i = 0; i < number_of_qnics; i++) {
@@ -282,24 +289,21 @@ void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_i
 }
 
 void RuleEngine::sendBarrierMessage(LinkAllocationUpdateMessage *msg) {
-  return;
-  // BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
-  // pkt->setSrcAddr(msg->getDestAddr());
-  // pkt->setDestAddr(msg->getSrcAddr());
-  // pkt->setNegotiatedRulesetId(msg->getNegotiatedRuleSetId());
-  // pkt->setQubitRecord((IQubitRecord *)msg->getQubitRecord());
-  // pkt->setSequenceNumber(msg->getSequenceNumber() + 1);
-  // pkt->setIsSender(false);
-  // send(pkt, "RouterPort$o");
+  BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
+  pkt->setSrcAddr(msg->getDestAddr());
+  pkt->setDestAddr(msg->getSrcAddr());
+  pkt->setRulesetId(msg->getStack_of_ActiveLinkAllocations(0));
+  pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
+  pkt->setIsSender(true);
+  send(pkt, "RouterPort$o");
 }
 
 void RuleEngine::respondToBarrierMessage(BarrierMessage *msg) {
   BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setNegotiatedRulesetId(msg->getNegotiatedRuleSetId());
-  pkt->setQubitRecord((IQubitRecord *)msg->getQubitRecord());
-  pkt->setSequenceNumber(msg->getSequenceNumber() + 1);
+  pkt->setRulesetId(msg->getRuleSetId());
+  pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
   pkt->setIsSender(false);
   send(pkt, "RouterPort$o");
 }
@@ -418,6 +422,13 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
       }
     }
   }
+}
+
+int RuleEngine::getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr) {
+  auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr);
+  auto partner_addr_sequence_number_qubit = range.second;
+  auto sequence_number_qubit = partner_addr_sequence_number_qubit->second;
+  return sequence_number_qubit.first;
 }
 
 void RuleEngine::executeAllRuleSets() {
