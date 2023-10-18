@@ -76,12 +76,16 @@ void BSAController::sendMeasurementResults(BatchClickEvent *batch_click_msg) {
     leftpk->appendSuccessIndex(index);
     leftpk->appendCorrectionOperation(PauliOperator::I);
     leftpk->setNeighborAddress(right_qnic.parent_node_addr);
+    leftpk->appendSequenceNumber(sequence_number);
     rightpk->appendSuccessIndex(index);
     rightpk->appendCorrectionOperation(batch_click_msg->getClickResults(index).correction_operation);
     rightpk->setNeighborAddress(left_qnic.parent_node_addr);
+    rightpk->appendSequenceNumber(sequence_number);
+    sequence_number += 1;
   }
   send(leftpk, "to_router");
   send(rightpk, "to_router");
+
   last_result_send_time = simTime();
 
   scheduleAt(simTime() + 1.1 * offset_time_for_first_photon, time_out_message);
