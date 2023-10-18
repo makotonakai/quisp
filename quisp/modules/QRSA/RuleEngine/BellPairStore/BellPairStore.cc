@@ -31,8 +31,8 @@ void BellPairStore::eraseQubit(qrsa::IQubitRecord *const qubit) {
   auto &resource = _resources[std::make_pair(qnic_type, qnic_index)];
   auto it = resource.begin();
   while (it != resource.cend()) {
-    if (it->second == qubit) {
-      logger->logBellPairInfo("Erased", it->first, qubit->getQNicType(), qubit->getQNicIndex(), qubit->getQubitIndex());
+    if (it->second.second == qubit) {
+      logger->logBellPairInfo("Erased", it->second.first, qubit->getQNicType(), qubit->getQNicIndex(), qubit->getQubitIndex());
       it = resource.erase(it);
     } else
       it++;
@@ -48,7 +48,7 @@ qrsa::IQubitRecord *BellPairStore::findQubit(QNIC_type qnic_type, QNicIndex qnic
   if (it == _resources[key].cend()) {
     return nullptr;
   }
-  return it->second;
+  return it->second.second;
 }
 
 PartnerAddrSequenceNumberQubitMapRange BellPairStore::getBellPairsRange(QNIC_type qnic_type, int qnic_index, int partner_addr) {
@@ -63,9 +63,7 @@ std::string BellPairStore::toString() const {
   std::stringstream ss;
   for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
     for (auto &[partner, sequence_number_qubit_map] : partner_sequence_number_qubit_map) {
-      for (auto &[sequence_number, qubit] : sequence_number_qubit_map) {
-        ss << "(type:" << key.first << ", qnic:" << key.second << ", qubit:" << qubit->getQubitIndex() << ")=>(partner:" << partner << "), ";
-      }
+      ss << "(type:" << key.first << ", qnic:" << key.second << ", qubit:" << sequence_number_qubit_map.second->getQubitIndex() << ")=>(partner:" << partner << "), ";
     }
   }
   return ss.str();
