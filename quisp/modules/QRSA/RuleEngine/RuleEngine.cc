@@ -407,7 +407,7 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
     for (auto &partner_addr : partners) {
       auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
       for (auto it = range.first; it != range.second; ++it) {
-        auto qubit_record = it->second;
+        auto qubit_record = it->second.second;
 
         // 3. if the qubit is not allocated yet, and the qubit has not been allocated to this rule,
         // if the qubit has already been assigned to the rule, the qubit is not allocatable to that rule
@@ -428,7 +428,7 @@ void RuleEngine::AllocateResourceToRuleSet(int qnic_type, int qnic_index, unsign
   for (auto &partner_addr : partners) {
     auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
     for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second;
+      auto qubit_record = it->second.second;
 
       // 3. if the qubit is not allocated yet, and the qubit has not been allocated to this rule,
       // if the qubit has already been assigned to the rule, the qubit is not allocatable to that rule
@@ -450,7 +450,7 @@ std::vector<IQubitRecord *> RuleEngine::getAllocatedResourceToRuleSet(int qnic_t
   for (auto &partner_addr : partners) {
     auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
     for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second;
+      auto qubit_record = it->second.second;
       if (qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
         qubit_record_list.push_back(qubit_record);
       }
@@ -466,7 +466,7 @@ void RuleEngine::freeResourceFromRuleSet(int qnic_type, int qnic_index, unsigned
   for (auto &partner_addr : partners) {
     auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
     for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second;
+      auto qubit_record = it->second.second;
 
       // 3. if the qubit is allocated, and the qubit need to be released from this rule,
       // if the qubit is not assigned to the rule, the qubit is not releasable from that rule
@@ -504,7 +504,7 @@ void RuleEngine::reallocateResource(int qnic_type, int qnic_index, unsigned long
   for (auto &partner_addr : partners) {
     auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
     for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second;
+      auto qubit_record = it->second.second;
 
       // 3. if the qubit is allocated, and the qubit need to be released from this rule,
       // if the qubit is not assigned to the rule, the qubit is not releasable from that rule
