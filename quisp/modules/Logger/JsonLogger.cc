@@ -146,11 +146,9 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
     os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
-    os << ", \"negotiated_ruleset_id\": " << req->getNegotiatedRuleSetId();
-    os << ", \"qubit_record\": " << req->getQubitRecord();
+    os << ", \"ruleset_id\": " << req->getRuleSetId();
     os << ", \"sequence_number\": " << req->getSequenceNumber();
     os << ", \"is_sender\": " << req->getIsSender();
-    os << ", \"is_last\": " << req->getIsLast();
     return os.str();
   }
 
