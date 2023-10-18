@@ -420,65 +420,6 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
   }
 }
 
-// Invoked whenever a new resource (entangled with neighbor) has been created.
-// Allocates those resources to a particular ruleset, from top to bottom (all of it).
-void RuleEngine::AllocateResourceToRuleSet(int qnic_type, int qnic_index, unsigned long ruleset_id) {
-  auto runtime = runtimes.findById(ruleset_id);
-  auto &partners = runtime->partners;
-  for (auto &partner_addr : partners) {
-    auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
-    for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second.second;
-
-      // 3. if the qubit is not allocated yet, and the qubit has not been allocated to this rule,
-      // if the qubit has already been assigned to the rule, the qubit is not allocatable to that rule
-      if (!qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
-        qubit_record->setAllocated(true);
-        runtime->assignQubitToRuleSet(partner_addr, qubit_record);
-      }
-    }
-  }
-}
-
-// Invoked whenever existing resource (entangled with neighbor) need to be released.
-// Get those resources from a particular ruleset, from top to bottom (all of it).
-std::vector<IQubitRecord *> RuleEngine::getAllocatedResourceToRuleSet(int qnic_type, int qnic_index, unsigned long ruleset_id) {
-  auto runtime = runtimes.findById(ruleset_id);
-  auto &partners = runtime->partners;
-
-  std::vector<IQubitRecord *> qubit_record_list;
-  for (auto &partner_addr : partners) {
-    auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
-    for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second.second;
-      if (qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
-        qubit_record_list.push_back(qubit_record);
-      }
-    }
-  }
-  return qubit_record_list;
-}
-
-// Invoked whenever existing resource (entangled with neighbor) need to be released.
-// Frees those resources from a particular ruleset, from top to bottom (all of it).
-void RuleEngine::freeResourceFromRuleSet(int qnic_type, int qnic_index, unsigned long ruleset_id) {
-  auto partners = runtimes.findPartnersById(ruleset_id);
-  for (auto &partner_addr : partners) {
-    auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
-    for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second.second;
-
-      // 3. if the qubit is allocated, and the qubit need to be released from this rule,
-      // if the qubit is not assigned to the rule, the qubit is not releasable from that rule
-      if (qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
-        qubit_record->setAllocated(false);
-        auto terminated_runtime = runtimes.findTerminatedRuntimeById(ruleset_id);
-        terminated_runtime->freeQubitFromRuleSet(partner_addr, qubit_record);
-      }
-    }
-  }
-}
-
 void RuleEngine::executeAllRuleSets() {
   auto terminated_ruleset_iterator_list = runtimes.exec();
   for (auto terminated_ruleset : terminated_ruleset_iterator_list) {
@@ -494,26 +435,6 @@ void RuleEngine::freeConsumedResource(int qnic_index /*Not the address!!!*/, ISt
     qubit_record->setAllocated(false);
   }
   bell_pair_store.eraseQubit(qubit_record);
-}
-
-void RuleEngine::reallocateResource(int qnic_type, int qnic_index, unsigned long current_ruleset_id, unsigned long next_ruleset_id) {
-  auto current_runtime = runtimes.findById(current_ruleset_id);
-  auto next_runtime = runtimes.findById(next_ruleset_id);
-  auto &partners = current_runtime->partners;
-
-  for (auto &partner_addr : partners) {
-    auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
-    for (auto it = range.first; it != range.second; ++it) {
-      auto qubit_record = it->second.second;
-
-      // 3. if the qubit is allocated, and the qubit need to be released from this rule,
-      // if the qubit is not assigned to the rule, the qubit is not releasable from that rule
-      if (qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
-        current_runtime->freeQubitFromRuleSet(partner_addr, qubit_record);
-        next_runtime->assignQubitToRuleSet(partner_addr, qubit_record);
-      }
-    }
-  }
 }
 
 }  // namespace quisp::modules

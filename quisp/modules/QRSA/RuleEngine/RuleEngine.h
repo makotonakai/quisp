@@ -81,8 +81,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
 
   void freeConsumedResource(int qnic_index, IStationaryQubit *qubit, QNIC_type qnic_type);
   void ResourceAllocation(int qnic_type, int qnic_index);
-  void AllocateResourceToRuleSet(int qnic_type, int qnic_index, unsigned long ruleset_id);
-  void freeResourceFromRuleSet(int qnic_type, int qnic_index, unsigned long ruleset_id);
   std::vector<IQubitRecord *> getAllocatedResourceToRuleSet(int qnic_type, int qnic_index, unsigned long ruleset_id);
   void handleConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
@@ -95,7 +93,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void respondToLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
-  void reallocateResource(int qnic_type, int qnic_index, unsigned long current_ruleset_id, unsigned long next_ruleset_id);
   std::vector<int> qnode_indices;
 
  protected:
