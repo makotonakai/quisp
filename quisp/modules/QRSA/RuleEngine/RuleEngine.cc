@@ -320,26 +320,6 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalCo
   }
 }
 
-void RuleEngine::respondToLinkAllocationUpdateMessage(LinkAllocationUpdateMessage *msg) {
-  auto src_addr = msg->getSrcAddr();
-  if (node_address_active_link_allocation_map[src_addr].size() == 0) {
-    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt->setSrcAddr(msg->getDestAddr());
-    pkt->setDestAddr(msg->getSrcAddr());
-    pkt->setIsSender(false);
-    pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
-    auto index = 0;
-    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
-      pkt->setStack_of_ActiveLinkAllocations(index, it->ruleset.id);
-      index += 1;
-    }
-    pkt->setRandomNumber(rand());
-    send(pkt, "RouterPort$o");
-
-    std::cout << "LAU message is sent from " << parentAddress << " to " << src_addr << std::endl;
-  }
-}
-
 void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeighborAddressesMessage *msg) {
   std::vector<int> neighbor_addresses;
   auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
@@ -364,6 +344,26 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeigh
     }
     pkt->setRandomNumber(rand());
     send(pkt, "RouterPort$o");
+  }
+}
+
+void RuleEngine::respondToLinkAllocationUpdateMessage(LinkAllocationUpdateMessage *msg) {
+  auto src_addr = msg->getSrcAddr();
+  if (node_address_active_link_allocation_map[src_addr].size() == 0) {
+    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+    pkt->setSrcAddr(msg->getDestAddr());
+    pkt->setDestAddr(msg->getSrcAddr());
+    pkt->setIsSender(false);
+    pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
+    auto index = 0;
+    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
+      pkt->setStack_of_ActiveLinkAllocations(index, it->ruleset.id);
+      index += 1;
+    }
+    pkt->setRandomNumber(rand());
+    send(pkt, "RouterPort$o");
+
+    std::cout << "LAU message is sent from " << parentAddress << " to " << src_addr << std::endl;
   }
 }
 
