@@ -8,15 +8,16 @@ namespace quisp::modules {
 BellPairStore::BellPairStore(Logger::ILogger *logger) : logger(logger) {}
 BellPairStore::~BellPairStore() {}
 
-void BellPairStore::insertEntangledQubit(QNodeAddr partner_addr, qrsa::IQubitRecord *const qubit) {
+void BellPairStore::insertEntangledQubit(int sequence_number, QNodeAddr partner_addr, qrsa::IQubitRecord *const qubit) {
   auto qnic_type = qubit->getQNicType();
   auto qnic_index = qubit->getQNicIndex();
   ResourceKey key{qnic_type, qnic_index};
   logger->logBellPairInfo("Generated", partner_addr, qubit->getQNicType(), qubit->getQNicIndex(), qubit->getQubitIndex());
+  auto sequence_number_qubit = std::pair<int, qrsa::IQubitRecord *>{std::make_pair(sequence_number, qubit)};
   if (_resources.find(key) == _resources.cend()) {
-    _resources.emplace(key, std::multimap<int, qrsa::IQubitRecord *>{std::make_pair(partner_addr, qubit)});
+    _resources.emplace(key, std::multimap<int, SequenceNumberQubit>{std::make_pair(partner_addr, sequence_number_qubit)});
   } else {
-    _resources[key].emplace(partner_addr, qubit);
+    _resources[key].emplace(partner_addr, sequence_number_qubit);
   }
 }
 
