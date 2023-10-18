@@ -46,12 +46,6 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"actual_src_addr\": " << req->getActual_srcAddr();
     os << ", \"num_measure\": " << req->getNum_measure();
     os << ", \"num_required_bell_pairs\": " << req->getNumber_of_required_Bellpairs();
-    os << ", \"stack_of_qnic_address\": [";
-    for (int i = 0; i < req->getStack_of_QNICsArraySize(); i++) {
-      if (i != 0) os << ", ";
-      os << req->getStack_of_QNICs(i).first.address << ", " << req->getStack_of_QNICs(i).second.address;
-    }
-    os << "]";
     return os.str();
   }
   if (auto* req = dynamic_cast<const quisp::messages::RejectConnectionSetupRequest*>(msg)) {
@@ -150,13 +144,13 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << "\"msg_type\": \"BarrierMessage\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"actual_dest_addr\": " << req->getActual_destAddr();
-    os << ", \"actual_src_addr\": " << req->getActual_srcAddr();
-    os << ", \"negotiated_ruleset_id\": " << req->getNegotiatedRuleSet_id();
+    os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
+    os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
+    os << ", \"negotiated_ruleset_id\": " << req->getNegotiatedRuleSetId();
     os << ", \"qubit_record\": " << req->getQubitRecord();
-    os << ", \"sequence_number\": " << req->getSequence_number();
-    os << ", \"is_sender\": " << req->getIs_sender();
-    os << ", \"is_last\": " << req->getIs_last();
+    os << ", \"sequence_number\": " << req->getSequenceNumber();
+    os << ", \"is_sender\": " << req->getIsSender();
+    os << ", \"is_last\": " << req->getIsLast();
     return os.str();
   }
 
