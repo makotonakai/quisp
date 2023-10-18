@@ -106,11 +106,6 @@ void ConnectionManager::handleMessage(cMessage *msg) {
   if (auto *resp = dynamic_cast<ConnectionSetupResponse *>(msg)) {
     int initiator_addr = resp->getActual_destAddr();
     int responder_addr = resp->getActual_srcAddr();
-    int inbound_qnic_addr = resp->getStack_of_QNICs(0).address;
-    int outbound_qnic_addr = resp->getStack_of_QNICs(1).address;
-
-    available_qnics.push_back(inbound_qnic_addr);
-    available_qnics.push_back(outbound_qnic_addr);
 
     if (responder_addr == my_address) {
       auto ruleset_id = resp->getRuleSet_id();
@@ -148,8 +143,6 @@ void ConnectionManager::handleMessage(cMessage *msg) {
     // Connection is torn down only if the node has not received the ConnectionTeardownMessage If it has already received it, the incoming message is ignored.
     int src_addr = pk->getActual_srcAddr();
     int dest_addr = pk->getActual_destAddr();
-    int inbound_qnic_addr = available_qnics[0];
-    int outbound_qnic_addr = available_qnics[1];
 
     // if (my_address == dest_addr) {
     //   if (isQnicBusy(inbound_qnic_addr)) {
@@ -335,7 +328,6 @@ void ConnectionManager::respondToRequest(ConnectionSetupRequest *req) {
   ruleset_gen::RuleSetGenerator ruleset_gen{my_address};
   auto rulesets = ruleset_gen.generateRuleSets(req, ruleset_id);
 
-  std::map<int, std::pair<quisp::modules::QNIC, quisp::modules::QNIC>> qnics = generateListOfQNICs(req);
   ruleset_id_node_addresses_along_path_map[ruleset_id] = generateNodeAddressesAlongPath(rulesets);
   auto initiator_address = ruleset_id_node_addresses_along_path_map[ruleset_id][0];
 
@@ -352,29 +344,9 @@ void ConnectionManager::respondToRequest(ConnectionSetupRequest *req) {
     pkt->setActual_destAddr(owner_address);
     pkt->setApplication_type(0);
     pkt->setKind(2);
-    pkt->setStack_of_QNICsArraySize(2);
-    for (auto index = 0; index < 2; index++) {
-      pkt->setStack_of_QNICs(0, qnics[index].first);
-      pkt->setStack_of_QNICs(1, qnics[index].second);
-    }
     send(pkt, "RouterPort$o");
   }
   // reserveQnic(qnic_addr);
-}
-
-std::map<int, std::pair<quisp::modules::QNIC, quisp::modules::QNIC>> ConnectionManager::generateListOfQNICs(ConnectionSetupRequest *req) {
-  std::map<int, std::pair<quisp::modules::QNIC, quisp::modules::QNIC>> qnics;
-  auto stack_of_qnic_size = req->getStack_of_QNICsArraySize();
-
-  std::pair<quisp::modules::QNIC, quisp::modules::QNIC> qnics_tmp;
-  for (auto index = 0; index < stack_of_qnic_size; index++) {
-    auto qnic_pair_info = (QNicPairInfo)req->getStack_of_QNICs(index);
-    qnics_tmp.first = qnic_pair_info.first;
-    qnics_tmp.second = qnic_pair_info.second;
-    qnics[index] = qnics_tmp;
-    qnics_tmp = {};
-  };
-  return qnics;
 }
 
 std::vector<int> ConnectionManager::generateNodeAddressesAlongPath(std::map<int, json> rulesets) {
@@ -430,7 +402,6 @@ void ConnectionManager::tryRelayRequestToNextHop(ConnectionSetupRequest *req) {
   // Update information and send it to the next Qnode.
   int num_accumulated_nodes = req->getStack_of_QNodeIndexesArraySize();
   int num_accumulated_costs = req->getStack_of_linkCostsArraySize();
-  int num_accumulated_pair_info = req->getStack_of_QNICsArraySize();
 
   req->setApplicationId(application_id);
   req->setDestAddr(outbound_info->neighbor_address);
@@ -439,10 +410,6 @@ void ConnectionManager::tryRelayRequestToNextHop(ConnectionSetupRequest *req) {
   req->setStack_of_linkCostsArraySize(num_accumulated_costs + 1);
   req->setStack_of_QNodeIndexes(num_accumulated_nodes, my_address);
   req->setStack_of_linkCosts(num_accumulated_costs, outbound_info->quantum_link_cost);
-  req->setStack_of_QNICsArraySize(num_accumulated_pair_info + 1);
-
-  QNicPairInfo pair_info{inbound_info->qnic, outbound_info->qnic};
-  req->setStack_of_QNICs(num_accumulated_pair_info, pair_info);
 
   // reserveQnic(inbound_info->qnic.address);
   // reserveQnic(outbound_info->qnic.address);
@@ -581,7 +548,6 @@ void ConnectionManager::queueApplicationRequest(ConnectionSetupRequest *req) {
   // Update information and send it to the next Qnode.
   int num_accumulated_nodes = req->getStack_of_QNodeIndexesArraySize();
   int num_accumulated_costs = req->getStack_of_linkCostsArraySize();
-  int num_accumulated_pair_info = req->getStack_of_QNICsArraySize();
 
   req->setDestAddr(outbound_info->neighbor_address);
   req->setSrcAddr(my_address);
@@ -589,10 +555,6 @@ void ConnectionManager::queueApplicationRequest(ConnectionSetupRequest *req) {
   req->setStack_of_linkCostsArraySize(num_accumulated_costs + 1);
   req->setStack_of_QNodeIndexes(num_accumulated_nodes, my_address);
   req->setStack_of_linkCosts(num_accumulated_costs, outbound_info->quantum_link_cost);
-  req->setStack_of_QNICsArraySize(num_accumulated_pair_info + 1);
-
-  QNicPairInfo pair_info{inbound_info->qnic, outbound_info->qnic};
-  req->setStack_of_QNICs(num_accumulated_pair_info, pair_info);
 
   auto &request_queue = connection_setup_buffer[outbound_qnic_address];
   request_queue.push(req);
