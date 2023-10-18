@@ -27,8 +27,8 @@ class BellPairStore {
   ~BellPairStore();
   void eraseQubit(qrsa::IQubitRecord* const qubit);
   void insertEntangledQubit(int sequence_number, QNodeAddr partner_addr, qrsa::IQubitRecord* qubit);
-  qrsa::IQubitRecord* findQubit(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr);
-  PartnerAddrQubitMapRange getBellPairsRange(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
+  qrsa::IQubitRecord* findQubit(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr, int sequence_number);
+  PartnerAddrSequenceNumberQubitMapRange getBellPairsRange(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
   std::string toString() const;
   Logger::ILogger* logger;
 
