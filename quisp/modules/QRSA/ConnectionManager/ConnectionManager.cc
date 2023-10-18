@@ -450,7 +450,7 @@ void ConnectionManager::tryRelayRequestToNextHop(ConnectionSetupRequest *req) {
   send(req, "RouterPort$o");
 }
 
-void ConnectionManager::saveNeighborsInfo(ConnectionSetupResponse *res) {
+void ConnectionManager::generateListOfNeighboringNodes(ConnectionSetupResponse *res) {
   auto initiator_addr = res->getInitiator_Addr();
   auto responder_addr = res->getSrcAddr();
 
@@ -474,7 +474,7 @@ void ConnectionManager::saveNeighborsInfo(ConnectionSetupResponse *res) {
 }
 
 void ConnectionManager::storeNeightborsInfo(ConnectionSetupResponse *res) {
-  saveNeighborsInfo(res);
+  generateListOfNeighboringNodes(res);
   auto ruleset_id = res->getRuleSet_id();
   auto neighboring_node_addresses = ruleset_id_neighboring_node_addresses_map[ruleset_id];
   InternalNeighborAddressesMessage *pkt = new InternalNeighborAddressesMessage("InternalNeighborAddressesMessage");
