@@ -10,9 +10,10 @@ namespace quisp::modules {
 using QNodeAddr = int;
 using QNicIndex = int;
 // entangled partner qnode address -> qubit
-using PartnerAddrQubitMap = std::multimap<QNodeAddr, qrsa::IQubitRecord*>;
+using SequenceNumberQubit = std::pair<int, qrsa::IQubitRecord*>;
+using PartnerAddrSequenceNumberQubitMap = std::multimap<QNodeAddr, SequenceNumberQubit>;
 using ResourceKey = std::pair<QNIC_type, QNicIndex>;
-using PartnerAddrQubitMapRange = std::pair<PartnerAddrQubitMap::iterator, PartnerAddrQubitMap::iterator>;
+using PartnerAddrSequenceNumberQubitMapRange = std::pair<PartnerAddrSequenceNumberQubitMap::iterator, PartnerAddrSequenceNumberQubitMap::iterator>;
 
 /**
  * this class contains the bell pair information for RuleEngine.
@@ -25,14 +26,14 @@ class BellPairStore {
   BellPairStore(Logger::ILogger* logger = nullptr);
   ~BellPairStore();
   void eraseQubit(qrsa::IQubitRecord* const qubit);
-  void insertEntangledQubit(QNodeAddr partner_addr, qrsa::IQubitRecord* qubit);
+  void insertEntangledQubit(int sequence_number, QNodeAddr partner_addr, qrsa::IQubitRecord* qubit);
   qrsa::IQubitRecord* findQubit(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr);
   PartnerAddrQubitMapRange getBellPairsRange(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
   std::string toString() const;
   Logger::ILogger* logger;
 
  protected:
-  std::map<ResourceKey, PartnerAddrQubitMap> _resources;
+  std::map<ResourceKey, PartnerAddrSequenceNumberQubitMap> _resources;
 };
 std::ostream& operator<<(std::ostream& os, const quisp::modules::BellPairStore& store);
 }  // namespace quisp::modules
