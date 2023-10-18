@@ -321,18 +321,23 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalCo
 }
 
 void RuleEngine::respondToLinkAllocationUpdateMessage(LinkAllocationUpdateMessage *msg) {
-  LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setIs_sender(false);
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
-  auto index = 0;
-  for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
-    pkt->setStack_of_ActiveLinkAllocations(index, it->ruleset.id);
-    index += 1;
+  auto src_addr = msg->getSrcAddr();
+  if (node_address_active_link_allocation_map[src_addr].size() == 0) {
+    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+    pkt->setSrcAddr(msg->getDestAddr());
+    pkt->setDestAddr(msg->getSrcAddr());
+    pkt->setIs_sender(false);
+    pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
+    auto index = 0;
+    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
+      pkt->setStack_of_ActiveLinkAllocations(index, it->ruleset.id);
+      index += 1;
+    }
+    pkt->setRandom_number(rand());
+    send(pkt, "RouterPort$o");
+
+    std::cout << "LAU message is sent from " << my_address << " to " << src_addr << std::endl;
   }
-  pkt->setRandom_number(rand());
-  send(pkt, "RouterPort$o");
 }
 
 void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeighborAddressesMessage *msg) {
@@ -342,10 +347,10 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeigh
     neighbor_addresses.push_back(msg->getStack_of_NeighboringQNodeIndices(i));
   }
 
-  auto ruleset_id = msg->getRuleSet_id();
-  std::vector<unsigned long long> active_link_allocations;
-  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
-    active_link_allocations.push_back(it->ruleset.id);
+  for (auto neighbor_address : neighbor_addresses) {
+    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+      node_address_active_link_allocation_map[neighbor_address].push_back(it->ruleset.id);
+    }
   }
 
   for (auto neighbor_address : neighbor_addresses) {
@@ -353,9 +358,9 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeigh
     pkt->setSrcAddr(parentAddress);
     pkt->setDestAddr(neighbor_address);
     pkt->setIs_sender(true);
-    pkt->setStack_of_ActiveLinkAllocationsArraySize(active_link_allocations.size());
-    for (auto i = 0; i < active_link_allocations.size(); i++) {
-      pkt->setStack_of_ActiveLinkAllocations(i, active_link_allocations.at(i));
+    pkt->setStack_of_ActiveLinkAllocationsArraySize(node_address_active_link_allocation_map[neighbor_address].size());
+    for (auto i = 0; i < node_address_active_link_allocation_map[neighbor_address].size(); i++) {
+      pkt->setStack_of_ActiveLinkAllocations(i, node_address_active_link_allocation_map[neighbor_address].at(i));
     }
     pkt->setRandom_number(rand());
     send(pkt, "RouterPort$o");
