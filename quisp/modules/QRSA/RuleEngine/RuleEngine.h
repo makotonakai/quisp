@@ -88,7 +88,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
-  void sendBarrierMessageAck(messages::BarrierMessage *msg);
+  void sendBarrierMessage(messages::LinkAllocationUpdateMessage *msg);
+  void respondToBarrierMessage(messages::BarrierMessage *msg);
   void sendLinkAllocationUpdateMessageForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
   void sendLinkAllocationUpdateMessageForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   void respondToLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
@@ -115,7 +116,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   runtime::RuntimeManager runtimes;
   std::unordered_map<std::pair<QNIC_type, int>, messages::EmitPhotonRequest *> emit_photon_timer_map;
   std::unordered_map<std::pair<QNIC_type, int>, std::vector<int>> emitted_photon_order_map;
-  std::unordered_map<unsigned long, std::vector<unsigned long>> node_address_active_link_allocation_map;
+  std::unordered_map<int, std::vector<unsigned long>> node_address_active_link_allocation_map;
+  std::unordered_map<int, bool> node_address_lau_responded_map;
 };
 
 Define_Module(RuleEngine);

@@ -202,6 +202,7 @@ void RuleEngine::handleLinkGenerationResult(CombinedBSAresults *bsa_result) {
     auto *qubit_record = qnic_store->getQubitRecord(type, qnic_index, qubit_index);
     auto iterator = emitted_indices.begin();
     std::advance(iterator, emitted_index);
+    auto sequence_number = bsa_result->getSequenceNumberList(i);
     bell_pair_store.insertEntangledQubit(partner_address, qubit_record);
     emitted_indices.erase(iterator);
 
@@ -280,7 +281,19 @@ void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_i
   }
 }
 
-void RuleEngine::sendBarrierMessageAck(BarrierMessage *msg) {
+void RuleEngine::sendBarrierMessage(LinkAllocationUpdateMessage *msg) {
+  return;
+  // BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
+  // pkt->setSrcAddr(msg->getDestAddr());
+  // pkt->setDestAddr(msg->getSrcAddr());
+  // pkt->setNegotiatedRulesetId(msg->getNegotiatedRuleSetId());
+  // pkt->setQubitRecord((IQubitRecord *)msg->getQubitRecord());
+  // pkt->setSequenceNumber(msg->getSequenceNumber() + 1);
+  // pkt->setIsSender(false);
+  // send(pkt, "RouterPort$o");
+}
+
+void RuleEngine::respondToBarrierMessage(BarrierMessage *msg) {
   BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
@@ -334,6 +347,9 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeigh
   }
 
   for (auto neighbor_address : neighbor_addresses) {
+    if (node_address_lau_responded_map[neighbor_address]) {
+      break;
+    }
     LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
     pkt->setSrcAddr(parentAddress);
     pkt->setDestAddr(neighbor_address);
@@ -349,22 +365,38 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeigh
 
 void RuleEngine::respondToLinkAllocationUpdateMessage(LinkAllocationUpdateMessage *msg) {
   auto src_addr = msg->getSrcAddr();
-  if (node_address_active_link_allocation_map[src_addr].size() == 0) {
-    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt->setSrcAddr(msg->getDestAddr());
-    pkt->setDestAddr(msg->getSrcAddr());
-    pkt->setIsSender(false);
-    pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
-    auto index = 0;
-    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
-      pkt->setStack_of_ActiveLinkAllocations(index, it->ruleset.id);
-      index += 1;
-    }
-    pkt->setRandomNumber(rand());
-    send(pkt, "RouterPort$o");
-
-    std::cout << "LAU message is sent from " << parentAddress << " to " << src_addr << std::endl;
+  if (node_address_lau_responded_map[src_addr]) {
+    node_address_lau_responded_map[src_addr] = false;
+    return;
   }
+
+  auto random_number_src = msg->getRandomNumber();
+  auto random_number_dest = rand();
+  vector<unsigned long> runtimes_tmp;
+
+  if (random_number_src > random_number_dest) {
+    auto size_of_active_allocations_src = msg->getStack_of_ActiveLinkAllocationsArraySize();
+    for (auto index = 0; index < size_of_active_allocations_src; index++) {
+      runtimes_tmp.push_back(msg->getStack_of_ActiveLinkAllocations(index));
+    }
+  } else if (random_number_src < random_number_dest) {
+    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+      runtimes_tmp.push_back(it->ruleset.id);
+    }
+  }
+  LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+  pkt->setSrcAddr(msg->getDestAddr());
+  pkt->setDestAddr(msg->getSrcAddr());
+  pkt->setIsSender(false);
+  pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes_tmp.size());
+  for (auto index = 0; index < runtimes_tmp.size(); index++) {
+    pkt->setStack_of_ActiveLinkAllocations(index, runtimes_tmp.at(index));
+  }
+  pkt->setRandomNumber(random_number_dest);
+  send(pkt, "RouterPort$o");
+
+  std::cout << "LAU message is sent from " << parentAddress << " to " << src_addr << std::endl;
+  node_address_lau_responded_map[src_addr] = true;
 }
 
 // Invoked whenever a new resource (entangled with neighbor) has been created.
