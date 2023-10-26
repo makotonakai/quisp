@@ -139,25 +139,35 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
-  if (auto* req = dynamic_cast<const quisp::messages::BarrierMessage*>(msg)) {
+  if (auto* req = dynamic_cast<const quisp::messages::BarrierRequest*>(msg)) {
     std::stringstream os;
-    os << "\"msg_type\": \"BarrierMessage\"";
+    os << "\"msg_type\": \"BarrierRequest\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
     os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
     os << ", \"ruleset_id\": " << req->getRuleSetId();
     os << ", \"sequence_number\": " << req->getSequenceNumber();
-    os << ", \"is_sender\": " << req->getIsSender();
     return os.str();
   }
 
-  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateMessage*>(msg)) {
+  if (auto* req = dynamic_cast<const quisp::messages::BarrierResponse*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"BarrierResponse\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
+    os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
+    os << ", \"ruleset_id\": " << req->getRuleSetId();
+    os << ", \"sequence_number\": " << req->getSequenceNumber();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateRequest*>(msg)) {
     std::stringstream os;
     os << "\"msg_type\": \"LinkAllocationUpdateMessage\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"is_sender\": " << req->getIsSender();
     os << ", \"stack_of_active_link_allocations\": [";
     for (int i = 0; i < req->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
       if (i != 0) os << ", ";
@@ -165,6 +175,20 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     }
     os << "]";
     os << ", \"random_number\": " << req->getRandomNumber();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateResponse*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"LinkAllocationUpdateMessage\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"stack_of_active_link_allocations\": [";
+    for (int i = 0; i < req->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getStack_of_ActiveLinkAllocations(i);
+    }
+    os << "]";
     return os.str();
   }
 
