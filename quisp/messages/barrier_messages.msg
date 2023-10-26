@@ -12,7 +12,7 @@ class IQubitRecord {
 import base_messages;
 namespace quisp::messages;
 
-packet BarrierMessage extends Header
+packet BarrierRequest extends Header
 {
     int srcAddr;
     int destAddr;
@@ -20,5 +20,14 @@ packet BarrierMessage extends Header
     int actualDestAddr;
     unsigned long rulesetId @setter(setRulesetId) @getter(getRuleSetId);
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber); 
-    bool isSender @setter(setIsSender) @getter(getIsSender);   
+}
+
+packet BarrierResponse extends Header
+{
+    int srcAddr;
+    int destAddr;
+    int actualSrcAddr;
+    int actualDestAddr;
+    unsigned long rulesetId @setter(setRulesetId) @getter(getRuleSetId);
+    int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber); 
 }
