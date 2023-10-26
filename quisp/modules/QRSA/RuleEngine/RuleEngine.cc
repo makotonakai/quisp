@@ -141,18 +141,12 @@ void RuleEngine::handleMessage(cMessage *msg) {
     sendLinkAllocationUpdateMessageForConnectionSetup(pkt);
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
     handleConnectionTeardownMessage(pkt);
-  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateMessage *>(msg)) {
-    auto is_sender = pkt->getIsSender();
-    if (is_sender) {
-      respondToLinkAllocationUpdateMessage(pkt);
-    } else {
-      sendBarrierMessage(pkt);
-    }
-  } else if (auto *pkt = dynamic_cast<BarrierMessage *>(msg)) {
-    auto is_sender = pkt->getIsSender();
-    if (is_sender) {
-      respondToBarrierMessage(pkt);
-    }
+  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateRequest *>(msg)) {
+    respondToLinkAllocationUpdateRequest(pkt);
+  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateResponse *>(msg)) {
+    sendBarrierRequest(pkt);
+  } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
+    respondToBarrierRequest(pkt);
   }
   for (int i = 0; i < number_of_qnics; i++) {
     ResourceAllocation(QNIC_E, i);
@@ -288,29 +282,27 @@ void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_i
   }
 }
 
-void RuleEngine::sendBarrierMessage(LinkAllocationUpdateMessage *msg) {
-  BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
+void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
+  BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setRulesetId(msg->getStack_of_ActiveLinkAllocations(0));
   pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
-  pkt->setIsSender(true);
   send(pkt, "RouterPort$o");
 }
 
-void RuleEngine::respondToBarrierMessage(BarrierMessage *msg) {
-  BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
+void RuleEngine::respondToBarrierRequest(BarrierRequest *msg) {
+  BarrierResponse *pkt = new BarrierResponse("BarrierResponse");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setRulesetId(msg->getRuleSetId());
   pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
-  pkt->setIsSender(false);
   send(pkt, "RouterPort$o");
 }
 
 void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
   if (msg->getLAU_destAddr_left() != -1) {
-    LinkAllocationUpdateMessage *pkt1 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+    LinkAllocationUpdateRequest *pkt1 = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
     pkt1->setSrcAddr(msg->getDestAddr());
     pkt1->setDestAddr(msg->getLAU_destAddr_left());
     pkt1->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
@@ -323,7 +315,7 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalCo
     send(pkt1, "RouterPort$o");
   }
   if (msg->getLAU_destAddr_right() != -1) {
-    LinkAllocationUpdateMessage *pkt2 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+    LinkAllocationUpdateRequest *pkt2 = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
     pkt2->setSrcAddr(msg->getDestAddr());
     pkt2->setDestAddr(msg->getLAU_destAddr_left());
     pkt2->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
@@ -354,10 +346,9 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeigh
     if (node_address_lau_responded_map[neighbor_address]) {
       break;
     }
-    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+    LinkAllocationUpdateRequest *pkt = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
     pkt->setSrcAddr(parentAddress);
     pkt->setDestAddr(neighbor_address);
-    pkt->setIsSender(true);
     pkt->setStack_of_ActiveLinkAllocationsArraySize(node_address_active_link_allocation_map[neighbor_address].size());
     for (auto i = 0; i < node_address_active_link_allocation_map[neighbor_address].size(); i++) {
       pkt->setStack_of_ActiveLinkAllocations(i, node_address_active_link_allocation_map[neighbor_address].at(i));
@@ -367,7 +358,7 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeigh
   }
 }
 
-void RuleEngine::respondToLinkAllocationUpdateMessage(LinkAllocationUpdateMessage *msg) {
+void RuleEngine::respondToLinkAllocationUpdateRequest(LinkAllocationUpdateRequest *msg) {
   auto src_addr = msg->getSrcAddr();
   if (node_address_lau_responded_map[src_addr]) {
     node_address_lau_responded_map[src_addr] = false;
@@ -388,15 +379,13 @@ void RuleEngine::respondToLinkAllocationUpdateMessage(LinkAllocationUpdateMessag
       runtimes_tmp.push_back(it->ruleset.id);
     }
   }
-  LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+  LinkAllocationUpdateResponse *pkt = new LinkAllocationUpdateResponse("LinkAllocationUpdateResponse");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setIsSender(false);
   pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes_tmp.size());
   for (auto index = 0; index < runtimes_tmp.size(); index++) {
     pkt->setStack_of_ActiveLinkAllocations(index, runtimes_tmp.at(index));
   }
-  pkt->setRandomNumber(random_number_dest);
   send(pkt, "RouterPort$o");
 
   std::cout << "LAU message is sent from " << parentAddress << " to " << src_addr << std::endl;

@@ -86,11 +86,11 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
-  void sendBarrierMessage(messages::LinkAllocationUpdateMessage *msg);
-  void respondToBarrierMessage(messages::BarrierMessage *msg);
+  void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg);
+  void respondToBarrierRequest(messages::BarrierRequest *msg);
   void sendLinkAllocationUpdateMessageForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
   void sendLinkAllocationUpdateMessageForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
-  void respondToLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
+  void respondToLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
   int getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr);
