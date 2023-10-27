@@ -286,7 +286,7 @@ void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
   BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setRulesetId(msg->getStack_of_ActiveLinkAllocations(0));
+  pkt->setRuleSetId(msg->getStack_of_ActiveLinkAllocations(0));
   pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
   send(pkt, "RouterPort$o");
 }
@@ -295,7 +295,7 @@ void RuleEngine::respondToBarrierRequest(BarrierRequest *msg) {
   BarrierResponse *pkt = new BarrierResponse("BarrierResponse");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setRulesetId(msg->getRuleSetId());
+  pkt->setRuleSetId(msg->getRuleSetId());
   pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
   send(pkt, "RouterPort$o");
 }

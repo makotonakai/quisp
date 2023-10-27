@@ -52,7 +52,7 @@ using quisp::modules::qrsa::IQubitRecord;
 using quisp::modules::qubit_record::QubitRecord;
 using namespace quisp_test;
 using namespace testing;
-using quisp::modules::PartnerAddrQubitMapRange;
+using quisp::modules::PartnerAddrSequenceNumberQubitMapRange;
 using quisp::modules::Logger::DisabledLogger;
 using quisp::runtime::InstructionTypes;
 using quisp::runtime::Program;
@@ -111,7 +111,7 @@ class RuleEngineTestTarget : public quisp::modules::RuleEngine {
     qnic_store = std::make_unique<StrictMock<MockQNicStore>>();
   }
   // setter function for allResorces[qnic_type][qnic_index]
-  void setAllResources(int partner_addr, IQubitRecord* qubit) { this->bell_pair_store.insertEntangledQubit(partner_addr, qubit); };
+  void setAllResources(int sequence_number, int partner_addr, IQubitRecord* qubit) { this->bell_pair_store.insertEntangledQubit(sequence_number, partner_addr, qubit); };
   cGate* gate(const char* gatename, int index = -1) {
     if (strcmp(gatename, "RouterPort$o") != 0) {
       throw cRuntimeError("unknown gate called");
@@ -157,9 +157,9 @@ TEST_F(RuleEngineTest, resourceAllocation) {
   auto rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, nullptr, qnic_specs};
   sim->registerComponent(rule_engine);
   rule_engine->callInitialize();
-  rule_engine->setAllResources(0, qubit_record0);
-  rule_engine->setAllResources(1, qubit_record1);
-  rule_engine->setAllResources(2, qubit_record2);
+  rule_engine->setAllResources(0, 0, qubit_record0);
+  rule_engine->setAllResources(1, 1, qubit_record1);
+  rule_engine->setAllResources(2, 2, qubit_record2);
   int q0 = 0;
   QNodeAddr partner_addr{1};
   // this action needs a resource qubit that is entangled with partner 1.
@@ -176,38 +176,6 @@ TEST_F(RuleEngineTest, resourceAllocation) {
   auto& rt = rule_engine->runtimes.at(0);
   EXPECT_EQ(rt.ruleset.rules.size(), 1);
   EXPECT_EQ(rt.qubits.size(), 1);
-}
-
-TEST_F(RuleEngineTest, freeResourceFromRuleSet) {
-  auto logger = std::make_unique<DisabledLogger>();
-  auto* qubit_record0 = new QubitRecord(QNIC_E, 3, 0, logger.get());
-  auto* qubit_record1 = new QubitRecord(QNIC_E, 3, 1, logger.get());
-  auto* qubit_record2 = new QubitRecord(QNIC_E, 3, 2, logger.get());
-  auto rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, nullptr, qnic_specs};
-  sim->registerComponent(rule_engine);
-  rule_engine->callInitialize();
-  rule_engine->setAllResources(0, qubit_record0);
-  rule_engine->setAllResources(1, qubit_record1);
-  rule_engine->setAllResources(2, qubit_record2);
-  int q0 = 0;
-  QNodeAddr partner_addr{1};
-  // this action needs a resource qubit that is entangled with partner 1.
-  Program test_action{"testAction", {quisp::runtime::INSTR_GET_QUBIT_QubitId_QNodeAddr_int_{{q0, partner_addr, 0}}}};
-  Program empty_condition{"emptyCondition", {}};
-  auto rs = quisp::runtime::RuleSet{"test rs", {quisp::runtime::Rule{"test", -1, -1, empty_condition, test_action}}};
-  auto runtime = quisp::runtime::Runtime{};
-  rule_engine->runtimes.acceptRuleSet(rs);
-
-  rule_engine->ResourceAllocation(QNIC_E, 3);
-  EXPECT_TRUE(qubit_record1->isAllocated());
-
-  rule_engine->freeResourceFromRuleSet(QNIC_E, 3, rs.id);
-  EXPECT_FALSE(qubit_record1->isAllocated());
-
-  // A qubit allocated to a particular action is now successfully released
-  auto& rt = rule_engine->runtimes.at(0);
-  EXPECT_EQ(rt.ruleset.rules.size(), 1);
-  EXPECT_EQ(rt.qubits.size(), 0);
 }
 
 TEST_F(RuleEngineTest, freeConsumedResource) {
@@ -227,32 +195,6 @@ TEST_F(RuleEngineTest, freeConsumedResource) {
   EXPECT_FALSE(qubit_record->isBusy());
   delete qubit;
   delete rule_engine->qnic_store.get();
-}
-
-TEST_F(RuleEngineTest, getAllocatedResourceToRuleSet) {
-  auto logger = std::make_unique<DisabledLogger>();
-  auto* qubit_record0 = new QubitRecord(QNIC_E, 3, 0, logger.get());
-  auto* qubit_record1 = new QubitRecord(QNIC_E, 3, 1, logger.get());
-  auto* qubit_record2 = new QubitRecord(QNIC_E, 3, 2, logger.get());
-  auto rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, nullptr, qnic_specs};
-  sim->registerComponent(rule_engine);
-  rule_engine->callInitialize();
-
-  rule_engine->setAllResources(0, qubit_record0);
-  rule_engine->setAllResources(1, qubit_record1);
-  rule_engine->setAllResources(2, qubit_record2);
-  int q0 = 0;
-  QNodeAddr partner_addr{1};
-  // this action needs a resource qubit that is entangled with partner 1.
-  Program test_action{"testAction", {quisp::runtime::INSTR_GET_QUBIT_QubitId_QNodeAddr_int_{{q0, partner_addr, 0}}}};
-  Program empty_condition{"emptyCondition", {}};
-  auto rs = quisp::runtime::RuleSet{"test rs", {quisp::runtime::Rule{"test", -1, -1, empty_condition, test_action}}};
-  rs.id = 1;
-  rule_engine->runtimes.acceptRuleSet(rs);
-  rule_engine->ResourceAllocation(QNIC_E, 3);
-
-  auto qubit_record_list = rule_engine->getAllocatedResourceToRuleSet(QNIC_E, 3, 1);
-  EXPECT_EQ(qubit_record_list, std::vector<IQubitRecord*>{qubit_record1});
 }
 
 TEST_F(RuleEngineTest, sendConnectionTeardownMessageForRuleSet) {
@@ -278,8 +220,6 @@ TEST_F(RuleEngineTest, sendConnectionTeardownMessageForRuleSet) {
   EXPECT_EQ(pkt1->getActual_srcAddr(), 5);
   EXPECT_EQ(pkt1->getActual_destAddr(), 5);
   EXPECT_EQ(pkt1->getRuleSet_id(), 1);
-  EXPECT_EQ(pkt1->getLAU_req_srcAddr(), 5);
-  EXPECT_EQ(pkt1->getLAU_req_destAddr(), 1);
 
   auto pkt2 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[1]);
   EXPECT_EQ(pkt2->getSrcAddr(), 5);
@@ -287,11 +227,9 @@ TEST_F(RuleEngineTest, sendConnectionTeardownMessageForRuleSet) {
   EXPECT_EQ(pkt2->getActual_srcAddr(), 5);
   EXPECT_EQ(pkt2->getActual_destAddr(), 1);
   EXPECT_EQ(pkt2->getRuleSet_id(), 1);
-  EXPECT_EQ(pkt2->getLAU_req_srcAddr(), 1);
-  EXPECT_EQ(pkt2->getLAU_req_destAddr(), -1);
 }
 
-TEST_F(RuleEngineTest, sendBarrierMessageAck) {
+TEST_F(RuleEngineTest, respondToBarrierRequest) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -300,31 +238,24 @@ TEST_F(RuleEngineTest, sendBarrierMessageAck) {
   sim->setContext(rule_engine);
   rule_engine->callInitialize();
 
-  auto* msg = new BarrierMessage();
+  auto* msg = new BarrierRequest();
   msg->setSrcAddr(1);
   msg->setDestAddr(2);
-  msg->setNegotiatedRuleset_id(111);
+  msg->setRuleSetId(111);
+  msg->setSequenceNumber(1);
 
-  auto logger = std::make_unique<DisabledLogger>();
-  auto* qubit_record = new QubitRecord(QNIC_E, 3, 0, logger.get());
-  ;
-  msg->setQubitRecord(qubit_record);
-  msg->setSequence_number(0);
-
-  rule_engine->sendBarrierMessageAck(msg);
+  rule_engine->respondToBarrierRequest(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 
-  auto pkt = dynamic_cast<BarrierMessage*>(gate->messages[0]);
+  auto pkt = dynamic_cast<BarrierResponse*>(gate->messages[0]);
   EXPECT_EQ(pkt->getSrcAddr(), 2);
   EXPECT_EQ(pkt->getDestAddr(), 1);
-  EXPECT_EQ(pkt->getNegotiatedRuleSet_id(), 111);
-  EXPECT_EQ(pkt->getQubitRecord(), qubit_record);
-  EXPECT_EQ(pkt->getSequence_number(), 1);
-  EXPECT_EQ(pkt->getIs_sender(), false);
+  EXPECT_EQ(pkt->getRuleSetId(), 111);
+  EXPECT_EQ(pkt->getSequenceNumber(), 0);
 }
 
-TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
+TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessageForConnectionSetup) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -333,29 +264,23 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   sim->setContext(rule_engine);
   rule_engine->callInitialize();
 
-  auto* msg = new BarrierMessage();
-  msg->setSrcAddr(1);
+  auto* msg = new InternalNeighborAddressesMessage();
+  msg->setSrcAddr(5);
   msg->setDestAddr(2);
-  msg->setNegotiatedRuleset_id(111);
-  msg->setIs_last(true);
+  msg->setRuleSetId(111);
+  msg->setStack_of_NeighboringQNodeIndicesArraySize(1);
+  msg->setStack_of_NeighboringQNodeIndices(0, 1);
 
-  auto logger = std::make_unique<DisabledLogger>();
-  auto* qubit_record = new QubitRecord(QNIC_E, 3, 0, logger.get());
-  ;
-  msg->setQubitRecord(qubit_record);
-  msg->setSequence_number(1);
-
-  rule_engine->sendLinkAllocationUpdateMessage(msg);
+  rule_engine->sendLinkAllocationUpdateMessageForConnectionSetup(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 
-  auto pkt = dynamic_cast<LinkAllocationUpdateMessage*>(gate->messages[0]);
-  EXPECT_EQ(pkt->getSrcAddr(), 2);
+  auto pkt = dynamic_cast<LinkAllocationUpdateRequest*>(gate->messages[0]);
+  EXPECT_EQ(pkt->getSrcAddr(), 5);
   EXPECT_EQ(pkt->getDestAddr(), 1);
-  EXPECT_EQ(pkt->getNegotiatedRuleSet_id(), 111);
 }
 
-TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
+TEST_F(RuleEngineTest, respondToLinkAllocationUpdateRequest) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -364,58 +289,17 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   sim->setContext(rule_engine);
   rule_engine->callInitialize();
 
-  auto* msg = new LinkAllocationUpdateMessage();
+  auto* msg = new LinkAllocationUpdateRequest();
   msg->setSrcAddr(1);
   msg->setDestAddr(2);
-  msg->setNegotiatedRuleSet_id(111);
 
-  rule_engine->sendLinkAllocationUpdateMessage(msg);
+  rule_engine->respondToLinkAllocationUpdateRequest(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 
-  auto pkt = dynamic_cast<LinkAllocationUpdateMessage*>(gate->messages[0]);
+  auto pkt = dynamic_cast<LinkAllocationUpdateResponse*>(gate->messages[0]);
   EXPECT_EQ(pkt->getSrcAddr(), 2);
   EXPECT_EQ(pkt->getDestAddr(), 1);
-  EXPECT_EQ(pkt->getNegotiatedRuleSet_id(), 111);
-}
-
-TEST_F(RuleEngineTest, reallocateResource) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  sim->registerComponent(rule_engine);
-  sim->setContext(rule_engine);
-  rule_engine->callInitialize();
-
-  auto logger = std::make_unique<DisabledLogger>();
-  auto* qubit_record0 = new QubitRecord(QNIC_E, 3, 0, logger.get());
-  auto* qubit_record1 = new QubitRecord(QNIC_E, 3, 1, logger.get());
-  auto* qubit_record2 = new QubitRecord(QNIC_E, 3, 2, logger.get());
-  rule_engine->setAllResources(0, qubit_record0);
-  rule_engine->setAllResources(1, qubit_record1);
-  rule_engine->setAllResources(2, qubit_record2);
-  int q0 = 0;
-  QNodeAddr partner_addr{1};
-  // this action needs a resource qubit that is entangled with partner 1.
-  Program test_action{"testAction", {quisp::runtime::INSTR_GET_QUBIT_QubitId_QNodeAddr_int_{{q0, partner_addr, 0}}}};
-  Program empty_condition{"emptyCondition", {}};
-
-  auto rs1 = quisp::runtime::RuleSet{"test rs", {quisp::runtime::Rule{"test", -1, -1, empty_condition, test_action}}};
-  auto runtime1 = quisp::runtime::Runtime{};
-  rs1.id = 111;
-  rule_engine->runtimes.acceptRuleSet(rs1);
-
-  auto rs2 = quisp::runtime::RuleSet{"test rs", {quisp::runtime::Rule{"test", -1, -1, empty_condition, test_action}}};
-  auto runtime2 = quisp::runtime::Runtime{};
-  rs2.id = 222;
-  rule_engine->runtimes.acceptRuleSet(rs2);
-
-  rule_engine->ResourceAllocation(QNIC_E, 3);
-  EXPECT_TRUE(qubit_record1->isAllocated());
-
-  rule_engine->reallocateResource(QNIC_E, 3, rs1.id, rs2.id);
-  EXPECT_TRUE(qubit_record1->isAllocated());
 }
 
 TEST_F(RuleEngineTest, executeAllRuleSets) {
@@ -459,8 +343,6 @@ TEST_F(RuleEngineTest, executeAllRuleSets) {
   EXPECT_EQ(pkt1->getDestAddr(), 1);
   EXPECT_EQ(pkt1->getActual_srcAddr(), 5);
   EXPECT_EQ(pkt1->getActual_destAddr(), 1);
-  EXPECT_EQ(pkt1->getLAU_req_srcAddr(), 1);
-  EXPECT_EQ(pkt1->getLAU_req_destAddr(), 5);
   EXPECT_EQ(pkt1->getRuleSet_id(), 1);
 
   auto pkt2 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[1]);
@@ -468,8 +350,6 @@ TEST_F(RuleEngineTest, executeAllRuleSets) {
   EXPECT_EQ(pkt2->getDestAddr(), 5);
   EXPECT_EQ(pkt2->getActual_srcAddr(), 5);
   EXPECT_EQ(pkt2->getActual_destAddr(), 5);
-  EXPECT_EQ(pkt2->getLAU_req_srcAddr(), 5);
-  EXPECT_EQ(pkt2->getLAU_req_destAddr(), -1);
   EXPECT_EQ(pkt2->getRuleSet_id(), 1);
 }
 

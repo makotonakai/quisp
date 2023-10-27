@@ -81,7 +81,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
 
   void freeConsumedResource(int qnic_index, IStationaryQubit *qubit, QNIC_type qnic_type);
   void ResourceAllocation(int qnic_type, int qnic_index);
-  std::vector<IQubitRecord *> getAllocatedResourceToRuleSet(int qnic_type, int qnic_index, unsigned long ruleset_id);
   void handleConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);

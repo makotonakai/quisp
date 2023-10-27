@@ -40,16 +40,13 @@ TEST_F(JsonLoggerTest, ConnSetupTest) {
   req->setActual_srcAddr(2);
   req->setNum_measure(5);
   req->setNumber_of_required_Bellpairs(7);
-  req->setStack_of_QNICsArraySize(1);
-  req->setStack_of_QNICs(
-      0, quisp::modules::QNicPairInfo({.type = quisp::modules::QNIC_E, .index = 12, .address = 102}, {.type = quisp::modules::QNIC_E, .index = 13, .address = 103}));
   logger->setQNodeAddress(7);
   logger->logPacket("test", req);
   EXPECT_EQ(log_stream.str(),
             "{\"simtime\": 0, \"event_type\": \"test\", \"address\": \"7\", \"msg_type\": \"ConnectionSetupRequest\", "
             "\"application_id\": 1, \"actual_dest_addr\": 1, "
             "\"actual_src_addr\": 2, \"num_measure\": 5, "
-            "\"num_required_bell_pairs\": 7, \"stack_of_qnic_address\": [102, 103]}\n");
+            "\"num_required_bell_pairs\": 7}\n");
 }
 
 TEST_F(JsonLoggerTest, ConnSetupRespTest) {
@@ -57,16 +54,13 @@ TEST_F(JsonLoggerTest, ConnSetupRespTest) {
   res->setApplicationId(1);
   res->setActual_destAddr(1);
   res->setActual_srcAddr(2);
-  res->setStack_of_QNICsArraySize(2);
-  res->setStack_of_QNICs(0, quisp::modules::QNIC{.type = quisp::modules::QNIC_E, .index = 12, .address = 102});
-  res->setStack_of_QNICs(1, quisp::modules::QNIC{.type = quisp::modules::QNIC_E, .index = 13, .address = 103});
   logger->setQNodeAddress(7);
   logger->logPacket("test", res);
   EXPECT_EQ(log_stream.str(),
             "{\"simtime\": 0, \"event_type\": \"test\", \"address\": \"7\", \"msg_type\": \"ConnectionSetupResponse\", "
             "\"application_id\": 1, \"actual_dest_addr\": 1, \"actual_src_addr\": 2, "
             "\"ruleset_id\": 0, \"ruleset\": null, \"application_type\": 0, "
-            "\"stack_of_qnode_indices\": [], \"stack_of_qnic_address\": [102, 103]}\n");
+            "\"stack_of_qnode_indices\": []}\n");
 }
 
 TEST_F(JsonLoggerTest, ConnRejectTest) {

@@ -39,7 +39,7 @@ void BellPairStore::eraseQubit(qrsa::IQubitRecord *const qubit) {
   }
 }
 
-qrsa::IQubitRecord *BellPairStore::findQubit(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr, int sequence_number) {
+qrsa::IQubitRecord *BellPairStore::findQubit(int sequence_number, QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr) {
   auto key = std::make_pair(qnic_type, qnic_index);
   if (_resources.find(key) == _resources.cend()) {
     return nullptr;

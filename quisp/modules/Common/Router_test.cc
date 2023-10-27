@@ -183,15 +183,29 @@ TEST_F(RouterTest, handleInternalConnectionTeardownMessage) {
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
-TEST_F(RouterTest, handleBarrierMessage) {
-  auto msg = new BarrierMessage;
+TEST_F(RouterTest, handleBarrierRequest) {
+  auto msg = new BarrierRequest;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
-TEST_F(RouterTest, handleLinkAllocationUpdateMessage) {
-  auto msg = new LinkAllocationUpdateMessage;
+TEST_F(RouterTest, handleBarrierResponse) {
+  auto msg = new BarrierResponse;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleLinkAllocationUpdateRequest) {
+  auto msg = new LinkAllocationUpdateRequest;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleLinkAllocationUpdateResponse) {
+  auto msg = new LinkAllocationUpdateResponse;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);
