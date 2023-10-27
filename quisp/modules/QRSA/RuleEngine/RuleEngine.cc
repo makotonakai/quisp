@@ -203,9 +203,9 @@ void RuleEngine::handleLinkGenerationResult(CombinedBSAresults *bsa_result) {
     auto *qubit_record = qnic_store->getQubitRecord(type, qnic_index, qubit_index);
     auto iterator = emitted_indices.begin();
     std::advance(iterator, emitted_index);
-    auto sequence_number = bsa_result->getSequenceNumberList(i);
     bell_pair_store.insertEntangledQubit(sequence_number, partner_address, qubit_record);
     emitted_indices.erase(iterator);
+    sequence_number += 1;
 
     auto correction_operation = bsa_result->getCorrectionOperationList(i);
     if (correction_operation == PauliOperator::X) {
