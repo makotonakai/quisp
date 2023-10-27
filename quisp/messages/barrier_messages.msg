@@ -18,7 +18,7 @@ packet BarrierRequest extends Header
     int destAddr;
     int actualSrcAddr;
     int actualDestAddr;
-    unsigned long rulesetId @setter(setRulesetId) @getter(getRuleSetId);
+    unsigned long rulesetId @setter(setRuleSetId) @getter(getRuleSetId);
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber); 
 }
 
@@ -28,6 +28,6 @@ packet BarrierResponse extends Header
     int destAddr;
     int actualSrcAddr;
     int actualDestAddr;
-    unsigned long rulesetId @setter(setRulesetId) @getter(getRuleSetId);
+    unsigned long rulesetId @setter(setRuleSetId) @getter(getRuleSetId);
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber); 
 }
