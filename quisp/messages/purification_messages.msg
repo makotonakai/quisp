@@ -3,7 +3,7 @@ namespace quisp::messages;
 
 packet PurificationResult extends Header
 {
-    unsigned long ruleset_id @setter(setRulesetId)         @getter(getRulesetId);
+    unsigned long ruleset_id @setter(setRuleSetId)         @getter(getRulesetId);
     int shared_rule_tag      @setter(setSharedRuleTag)     @getter(getSharedRuleTag);
     int sequence_number      @setter(setSequenceNumber)    @getter(getSequenceNumber);
     int measurement_result   @setter(setMeasurementResult) @getter(getMeasurementResult); // can handle up to 32 qubits protocol

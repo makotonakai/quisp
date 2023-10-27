@@ -24,7 +24,7 @@ packet RejectLinkAllocationUpdateMessage extends Header {
 packet InternalNeighborAddressesMessage extends Header {
   int srcAddr @setter(setSrcAddr) @getter(getSrcAddr);
   int destAddr @setter(setDestAddr) @getter(getDestAddr);
-  unsigned long RuleSet_id;
+  unsigned long RuleSet_id  @setter(setRuleSetId) @getter(getRulesetId);
   int stack_of_NeighboringQNodeIndices[];
 }
 
