@@ -369,7 +369,7 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeigh
 
 bool RuleEngine::activeLinkAllocationDoesNotExist(unsigned long active_link_allocation) {
   vector<unsigned long> active_link_allocations;
-  for (it = runtimes.begin(); it != runtimes.end(); ++it) {
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
     active_link_allocations.push_back(it->ruleset.id);
   }
   auto exist = std::find(active_link_allocations.begin(), active_link_allocations.end(), active_link_allocation);
@@ -379,7 +379,7 @@ bool RuleEngine::activeLinkAllocationDoesNotExist(unsigned long active_link_allo
 bool RuleEngine::haveAllActiveLinkAllocations(LinkAllocationUpdateRequest *msg) {
   std::vector<unsigned long> active_link_allocations;
   auto active_link_allocations_size = msg->getStack_of_ActiveLinkAllocationsArraySize();
-  for (auto i = 0; i < active_link_allocations_size < i++) {
+  for (auto i = 0; i < active_link_allocations_size; i++) {
     auto active_link_allocation = msg->getStack_of_ActiveLinkAllocations(i);
     if (activeLinkAllocationDoesNotExist(active_link_allocation)) {
       return false;
@@ -389,7 +389,7 @@ bool RuleEngine::haveAllActiveLinkAllocations(LinkAllocationUpdateRequest *msg) 
 }
 
 void RuleEngine::sendRejectLinkAllocationUpdateRequest(LinkAllocationUpdateRequest *msg) {
-  RejectLinkAllocationUpdateRequest pkt = new RejectLinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
+  RejectLinkAllocationUpdateRequest *pkt = new RejectLinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getStack_of_ActiveLinkAllocationsArraySize());
@@ -400,7 +400,7 @@ void RuleEngine::sendRejectLinkAllocationUpdateRequest(LinkAllocationUpdateReque
 }
 
 void RuleEngine::resendLinkAllocationUpdateRequest(RejectLinkAllocationUpdateRequest *msg) {
-  LinkAllocationUpdateRequest pkt = new LinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
+  LinkAllocationUpdateRequest *pkt = new LinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getStack_of_ActiveLinkAllocationsArraySize());
