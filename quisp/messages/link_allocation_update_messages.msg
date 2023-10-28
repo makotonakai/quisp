@@ -19,6 +19,7 @@ packet LinkAllocationUpdateResponse extends Header {
 packet RejectLinkAllocationUpdateMessage extends Header {
   int srcAddr @setter(setSrcAddr) @getter(getSrcAddr);
   int destAddr @setter(setDestAddr) @getter(getDestAddr);
+  unsigned long stack_of_ActiveLinkAllocations[];
 }
 
 packet InternalNeighborAddressesMessage extends Header {
