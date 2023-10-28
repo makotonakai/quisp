@@ -26,6 +26,6 @@ class RuntimeManager {
   std::vector<Runtime> runtimes;
   std::vector<Runtime> terminated_runtimes;
   std::unique_ptr<Runtime::ICallBack> callback;
-  std::map<unsigned unsigned long, std::vector<QNodeAddr> > ruleset_id_partners_map;
+  std::map<unsigned long, std::vector<QNodeAddr> > ruleset_id_partners_map;
 };
 }  // namespace quisp::runtime
