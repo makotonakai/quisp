@@ -148,7 +148,10 @@ void RuleEngine::handleMessage(cMessage *msg) {
     if (haveAllActiveLinkAllocations(pkt)) {
       sendLinkAllocationUpdateResponse(pkt);
     } else {
+      sendRejectLinkAllocationUpdateRequest(pkt);
     }
+  } else if (auto *pkt = dynamic_cast<RejectLinkAllocationUpdateRequest *>(msg)) {
+    resendLinkAllocationUpdateRequest(pkt);
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateResponse *>(msg)) {
     sendBarrierRequest(pkt);
   } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
@@ -387,6 +390,17 @@ bool RuleEngine::haveAllActiveLinkAllocations(LinkAllocationUpdateRequest *msg) 
 
 void RuleEngine::sendRejectLinkAllocationUpdateRequest(LinkAllocationUpdateRequest *msg) {
   RejectLinkAllocationUpdateRequest pkt = new RejectLinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
+  pkt->setSrcAddr(msg->getDestAddr());
+  pkt->setDestAddr(msg->getSrcAddr());
+  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getStack_of_ActiveLinkAllocationsArraySize());
+  for (auto i = 0; i < msg->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+    pkt->setStack_of_ActiveLinkAllocations(i, msg->getStack_of_ActiveLinkAllocations(i));
+  }
+  send(pkt, "RouterPort$o");
+}
+
+void RuleEngine::resendLinkAllocationUpdateRequest(RejectLinkAllocationUpdateRequest *msg) {
+  LinkAllocationUpdateRequest pkt = new LinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getStack_of_ActiveLinkAllocationsArraySize());
