@@ -93,7 +93,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   bool activeLinkAllocationDoesNotExist(unsigned long active_link_allocation);
   bool haveAllActiveLinkAllocations(messages::LinkAllocationUpdateRequest *msg);
   void sendRejectLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
-  void resendLinkAllocationUpdateRequest(messages::RejectLinkAllocationUpdateRequest *msg) std::vector<unsigned long long> getActiveLinkAllcations();
+  void resendLinkAllocationUpdateRequest(messages::RejectLinkAllocationUpdateRequest *msg);
+  std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
   int getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr);
   std::vector<int> qnode_indices;
