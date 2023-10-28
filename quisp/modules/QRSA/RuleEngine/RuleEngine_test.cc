@@ -255,7 +255,7 @@ TEST_F(RuleEngineTest, respondToBarrierRequest) {
   EXPECT_EQ(pkt->getSequenceNumber(), 0);
 }
 
-TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessageForConnectionSetup) {
+TEST_F(RuleEngineTest, sendLinkAllocationUpdateRequestForConnectionSetup) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -271,7 +271,7 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessageForConnectionSetup) {
   msg->setStack_of_NeighboringQNodeIndicesArraySize(1);
   msg->setStack_of_NeighboringQNodeIndices(0, 1);
 
-  rule_engine->sendLinkAllocationUpdateMessageForConnectionSetup(msg);
+  rule_engine->sendLinkAllocationUpdateRequestForConnectionSetup(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 

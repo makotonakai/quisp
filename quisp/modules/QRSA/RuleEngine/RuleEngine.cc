@@ -3,6 +3,7 @@
  *  \brief RuleEngine
  */
 #include "RuleEngine.h"
+#include <unistd.h>
 
 #include <cassert>
 #include <cstddef>
@@ -138,7 +139,7 @@ void RuleEngine::handleMessage(cMessage *msg) {
       ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(pkt->getNode_addresses_along_path(index));
     }
   } else if (auto *pkt = dynamic_cast<InternalNeighborAddressesMessage *>(msg)) {
-    sendLinkAllocationUpdateMessageForConnectionSetup(pkt);
+    sendLinkAllocationUpdateRequestForConnectionSetup(pkt);
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
     handleConnectionTeardownMessage(pkt);
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateRequest *>(msg)) {
@@ -300,7 +301,7 @@ void RuleEngine::respondToBarrierRequest(BarrierRequest *msg) {
   send(pkt, "RouterPort$o");
 }
 
-void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
+void RuleEngine::sendLinkAllocationUpdateRequestForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
   if (msg->getLAU_destAddr_left() != -1) {
     LinkAllocationUpdateRequest *pkt1 = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
     pkt1->setSrcAddr(msg->getDestAddr());
@@ -329,7 +330,7 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalCo
   }
 }
 
-void RuleEngine::sendLinkAllocationUpdateMessageForConnectionSetup(InternalNeighborAddressesMessage *msg) {
+void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeighborAddressesMessage *msg) {
   std::vector<int> neighbor_addresses;
   auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
   for (auto i = 0; i < num_neighbors; i++) {
@@ -379,6 +380,7 @@ void RuleEngine::respondToLinkAllocationUpdateRequest(LinkAllocationUpdateReques
       runtimes_tmp.push_back(it->ruleset.id);
     }
   }
+
   LinkAllocationUpdateResponse *pkt = new LinkAllocationUpdateResponse("LinkAllocationUpdateResponse");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
