@@ -133,6 +133,8 @@ void RuleEngine::handleMessage(cMessage *msg) {
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
+    std::cout << "Node (Address: " << parentAddress << " ) accepts RuleSet"
+              << " at " << time(nullptr) << std::endl;
   } else if (auto *pkt = dynamic_cast<InternalNodeAddressesAlongPathForwarding *>(msg)) {
     auto ruleset_id = pkt->getRuleSet_id();
     for (auto index = 0; index < pkt->getNode_addresses_along_pathArraySize(); index++) {
@@ -143,7 +145,10 @@ void RuleEngine::handleMessage(cMessage *msg) {
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
     handleConnectionTeardownMessage(pkt);
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateRequest *>(msg)) {
-    respondToLinkAllocationUpdateRequest(pkt);
+    if (haveAllActiveLinkAllocations(pkt)) {
+      sendLinkAllocationUpdateResponse(pkt);
+    } else {
+    }
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateResponse *>(msg)) {
     sendBarrierRequest(pkt);
   } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
@@ -359,7 +364,39 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeigh
   }
 }
 
-void RuleEngine::respondToLinkAllocationUpdateRequest(LinkAllocationUpdateRequest *msg) {
+bool RuleEngine::activeLinkAllocationDoesNotExist(unsigned long active_link_allocation) {
+  vector<unsigned long> active_link_allocations;
+  for (it = runtimes.begin(); it != runtimes.end(); ++it) {
+    active_link_allocations.push_back(it->ruleset.id);
+  }
+  auto exist = std::find(active_link_allocations.begin(), active_link_allocations.end(), active_link_allocation);
+  return exist == active_link_allocations.end();
+}
+
+bool RuleEngine::haveAllActiveLinkAllocations(LinkAllocationUpdateRequest *msg) {
+  std::vector<unsigned long> active_link_allocations;
+  auto active_link_allocations_size = msg->getStack_of_ActiveLinkAllocationsArraySize();
+  for (auto i = 0; i < active_link_allocations_size < i++) {
+    auto active_link_allocation = msg->getStack_of_ActiveLinkAllocations(i);
+    if (activeLinkAllocationDoesNotExist(active_link_allocation)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+void RuleEngine::sendRejectLinkAllocationUpdateRequest(LinkAllocationUpdateRequest *msg) {
+  RejectLinkAllocationUpdateRequest pkt = new RejectLinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
+  pkt->setSrcAddr(msg->getDestAddr());
+  pkt->setDestAddr(msg->getSrcAddr());
+  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getStack_of_ActiveLinkAllocationsArraySize());
+  for (auto i = 0; i < msg->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+    pkt->setStack_of_ActiveLinkAllocations(i, msg->getStack_of_ActiveLinkAllocations(i));
+  }
+  send(pkt, "RouterPort$o");
+}
+
+void RuleEngine::sendLinkAllocationUpdateResponse(LinkAllocationUpdateRequest *msg) {
   auto src_addr = msg->getSrcAddr();
   if (node_address_lau_responded_map[src_addr]) {
     node_address_lau_responded_map[src_addr] = false;
@@ -390,7 +427,6 @@ void RuleEngine::respondToLinkAllocationUpdateRequest(LinkAllocationUpdateReques
   }
   send(pkt, "RouterPort$o");
 
-  std::cout << "LAU message is sent from " << parentAddress << " to " << src_addr << std::endl;
   node_address_lau_responded_map[src_addr] = true;
 }
 
