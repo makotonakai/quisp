@@ -165,7 +165,7 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
 
   if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateRequest*>(msg)) {
     std::stringstream os;
-    os << "\"msg_type\": \"LinkAllocationUpdateMessage\"";
+    os << "\"msg_type\": \"LinkAllocationUpdateRequest\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_active_link_allocations\": [";
@@ -180,7 +180,7 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
 
   if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateResponse*>(msg)) {
     std::stringstream os;
-    os << "\"msg_type\": \"LinkAllocationUpdateMessage\"";
+    os << "\"msg_type\": \"LinkAllocationUpdateResponse\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_active_link_allocations\": [";
