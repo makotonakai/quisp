@@ -87,8 +87,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
   void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg);
   void respondToBarrierRequest(messages::BarrierRequest *msg);
-  void sendLinkAllocationUpdateMessageForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
-  void sendLinkAllocationUpdateMessageForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
+  void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
+  void sendLinkAllocationUpdateRequestForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   void respondToLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
