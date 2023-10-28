@@ -124,9 +124,9 @@ TEST_F(BellPairStoreTest, getRangeWithLoop) {
   EXPECT_EQ(count, 1);
 
   // 4 qubits and same partner addr.
-  store.insertEntangledQubit(0, 7, qubit2);
-  store.insertEntangledQubit(1, 7, qubit3);
-  store.insertEntangledQubit(2, 7, qubit4);
+  store.insertEntangledQubit(1, 7, qubit2);
+  store.insertEntangledQubit(2, 7, qubit3);
+  store.insertEntangledQubit(3, 7, qubit4);
   range = store.getBellPairsRange(QNIC_E, 3, 7);
   count = 0;
   for (auto it = range.first; it != range.second; it++) {
