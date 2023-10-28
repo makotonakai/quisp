@@ -89,7 +89,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void respondToBarrierRequest(messages::BarrierRequest *msg);
   void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
-  void respondToLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
+  void sendLinkAllocationUpdateResponse(messages::LinkAllocationUpdateRequest *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
   int getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr);

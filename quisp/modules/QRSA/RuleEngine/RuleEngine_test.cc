@@ -280,7 +280,7 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateRequestForConnectionSetup) {
   EXPECT_EQ(pkt->getDestAddr(), 1);
 }
 
-TEST_F(RuleEngineTest, respondToLinkAllocationUpdateRequest) {
+TEST_F(RuleEngineTest, sendLinkAllocationUpdateResponse) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -293,7 +293,7 @@ TEST_F(RuleEngineTest, respondToLinkAllocationUpdateRequest) {
   msg->setSrcAddr(1);
   msg->setDestAddr(2);
 
-  rule_engine->respondToLinkAllocationUpdateRequest(msg);
+  rule_engine->sendLinkAllocationUpdateResponse(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 
