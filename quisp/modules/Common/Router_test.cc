@@ -204,6 +204,13 @@ TEST_F(RouterTest, handleLinkAllocationUpdateRequest) {
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
+TEST_F(RouterTest, handleRejectLinkAllocationUpdateRequest) {
+  auto msg = new RejectLinkAllocationUpdateRequest;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
 TEST_F(RouterTest, handleLinkAllocationUpdateResponse) {
   auto msg = new LinkAllocationUpdateResponse;
   msg->setDestAddr(10);
