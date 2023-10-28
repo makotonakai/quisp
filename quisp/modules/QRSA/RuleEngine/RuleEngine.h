@@ -91,8 +91,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void sendLinkAllocationUpdateRequestForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   void sendLinkAllocationUpdateResponse(messages::LinkAllocationUpdateRequest *msg);
   bool activeLinkAllocationDoesNotExist(unsigned long active_link_allocation);
-  bool RuleEngine::haveAllActiveLinkAllocations(messages::LinkAllocationUpdateRequest *msg);
-  void RuleEngine::sendRejectLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
+  bool haveAllActiveLinkAllocations(messages::LinkAllocationUpdateRequest *msg);
+  void sendRejectLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
   int getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr);
