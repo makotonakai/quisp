@@ -229,6 +229,63 @@ TEST_F(RuleEngineTest, sendConnectionTeardownMessageForRuleSet) {
   EXPECT_EQ(pkt2->getRuleSet_id(), 1);
 }
 
+TEST_F(RuleEngineTest, activeLinkAllocationDoesNotExist) {
+  auto* sim = prepareSimulation();
+  auto* routing_daemon = new MockRoutingDaemon();
+  auto* hardware_monitor = new MockHardwareMonitor();
+  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
+  sim->registerComponent(rule_engine);
+  sim->setContext(rule_engine);
+  rule_engine->callInitialize();
+
+  auto active_link_allocations = std::vector<unsigned long>{1};
+  auto active_link_allocation_that_does_not_exist = 2;
+  auto result1 = rule_engine->activeLinkAllocationDoesNotExist(active_link_allocations, active_link_allocation_that_does_not_exist);
+  EXPECT_TRUE(result1);
+
+  auto active_link_allocation_that_exists = 1;
+  auto result2 = rule_engine->activeLinkAllocationDoesNotExist(active_link_allocations, active_link_allocation_that_exists);
+  EXPECT_FALSE(result2);
+}
+
+TEST_F(RuleEngineTest, haveAllActiveLinkAllocations) {
+  auto* sim = prepareSimulation();
+  auto* routing_daemon = new MockRoutingDaemon();
+  auto* hardware_monitor = new MockHardwareMonitor();
+  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
+  sim->registerComponent(rule_engine);
+  sim->setContext(rule_engine);
+  rule_engine->callInitialize();
+
+  Program empty{"empty", {}};
+  Program cond_passed_once{"passed_once",
+                           {
+                               INSTR_LOAD_RegId_MemoryKey_{{RegId::REG0, MemoryKey{"count"}}},
+                               INSTR_BEZ_Label_RegId_{{Label{"first_time"}, RegId::REG0}},
+                               INSTR_RET_ReturnCode_{{ReturnCode::COND_FAILED}},
+                               INSTR_INC_RegId_{{RegId::REG0}, "first_time"},
+                               INSTR_STORE_MemoryKey_RegId_{{MemoryKey{"count"}, RegId::REG0}},
+                               INSTR_RET_ReturnCode_{{ReturnCode::COND_PASSED}},
+                           }};
+  Program checker{"cond", {INSTR_STORE_MemoryKey_int_{{MemoryKey{"test"}, 123}}}};
+  Program terminator{"terminator", {INSTR_RET_ReturnCode_{{ReturnCode::RS_TERMINATED}}}};
+  Rule rule{
+      "", -1, -1, cond_passed_once, checker,
+  };
+  RuleSet ruleset{"ruleset1", {rule}, terminator};
+  ruleset.id = 1;
+  ruleset.owner_addr = 1;
+  rule_engine->runtimes.acceptRuleSet(ruleset);
+
+  auto pkt = new LinkAllocationUpdateRequest();
+  pkt->setStack_of_ActiveLinkAllocationsArraySize(2);
+  pkt->setStack_of_ActiveLinkAllocations(0, 1);
+  pkt->setStack_of_ActiveLinkAllocations(0, 2);
+
+  auto result = rule_engine->haveAllActiveLinkAllocations(pkt);
+  EXPECT_FALSE(result);
+}
+
 TEST_F(RuleEngineTest, respondToBarrierRequest) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
