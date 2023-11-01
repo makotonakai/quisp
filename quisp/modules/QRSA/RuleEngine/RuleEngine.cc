@@ -367,21 +367,21 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeigh
   }
 }
 
-bool RuleEngine::activeLinkAllocationDoesNotExist(unsigned long active_link_allocation) {
-  vector<unsigned long> active_link_allocations;
-  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
-    active_link_allocations.push_back(it->ruleset.id);
-  }
+bool RuleEngine::activeLinkAllocationDoesNotExist(std::vector<unsigned long> active_link_allocations, unsigned long active_link_allocation) {
   auto exist = std::find(active_link_allocations.begin(), active_link_allocations.end(), active_link_allocation);
   return exist == active_link_allocations.end();
 }
 
 bool RuleEngine::haveAllActiveLinkAllocations(LinkAllocationUpdateRequest *msg) {
   std::vector<unsigned long> active_link_allocations;
+  for (auto runtime : runtimes) {
+    active_link_allocations.push_back(runtime.ruleset.id);
+  }
+
   auto active_link_allocations_size = msg->getStack_of_ActiveLinkAllocationsArraySize();
   for (auto i = 0; i < active_link_allocations_size; i++) {
     auto active_link_allocation = msg->getStack_of_ActiveLinkAllocations(i);
-    if (activeLinkAllocationDoesNotExist(active_link_allocation)) {
+    if (activeLinkAllocationDoesNotExist(active_link_allocations, active_link_allocation)) {
       return false;
     }
   }

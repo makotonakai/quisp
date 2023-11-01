@@ -90,7 +90,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   void sendLinkAllocationUpdateResponse(messages::LinkAllocationUpdateRequest *msg);
-  bool activeLinkAllocationDoesNotExist(unsigned long active_link_allocation);
+  bool activeLinkAllocationDoesNotExist(std::vector<unsigned long> active_link_allocations, unsigned long active_link_allocation);
   bool haveAllActiveLinkAllocations(messages::LinkAllocationUpdateRequest *msg);
   void sendRejectLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
   void resendLinkAllocationUpdateRequest(messages::RejectLinkAllocationUpdateRequest *msg);
