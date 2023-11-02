@@ -133,8 +133,6 @@ void RuleEngine::handleMessage(cMessage *msg) {
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
-    std::cout << "Node (Address: " << parentAddress << " ) accepts RuleSet"
-              << " at " << time(nullptr) << std::endl;
   } else if (auto *pkt = dynamic_cast<InternalNodeAddressesAlongPathForwarding *>(msg)) {
     auto ruleset_id = pkt->getRuleSet_id();
     for (auto index = 0; index < pkt->getNode_addresses_along_pathArraySize(); index++) {
