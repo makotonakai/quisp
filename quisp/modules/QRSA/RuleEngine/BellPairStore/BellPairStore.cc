@@ -59,6 +59,23 @@ PartnerAddrSequenceNumberQubitMapRange BellPairStore::getBellPairsRange(QNIC_typ
   return _resources[key].equal_range(partner_addr);
 }
 
+SequenceNumberQubit BellPairStore::getFirstAvailableSequenceNumberQubit(QNIC_type qnic_type, int qnic_index, int partner_addr) {
+  auto key = std::make_pair(qnic_type, qnic_index);
+  if (_resources.find(key) == _resources.cend()) {
+    _resources.emplace(key, std::multimap<int, SequenceNumberQubit>{});
+  }
+  auto itr = _resources[key].find(partner_addr);
+  auto count = _resources[key].count(partner_addr);
+  for (auto i = 0; i < count; i++) {
+    auto sequence_number_qubit = itr->second;
+    auto qubit_record = sequence_number_qubit.second;
+    if (!qubit_record->isAllocated()) {
+      return sequence_number_qubit;
+    }
+    itr++;
+  }
+}
+
 std::string BellPairStore::toString() const {
   std::stringstream ss;
   for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
