@@ -64,16 +64,21 @@ SequenceNumberQubit BellPairStore::getFirstAvailableSequenceNumberQubit(QNIC_typ
   if (_resources.find(key) == _resources.cend()) {
     _resources.emplace(key, std::multimap<int, SequenceNumberQubit>{});
   }
+
   auto itr = _resources[key].find(partner_addr);
   auto count = _resources[key].count(partner_addr);
+
+  SequenceNumberQubit sequence_number_qubit;
+  qrsa::IQubitRecord *qubit_record;
   for (auto i = 0; i < count; i++) {
-    auto sequence_number_qubit = itr->second;
-    auto qubit_record = sequence_number_qubit.second;
+    sequence_number_qubit = itr->second;
+    qubit_record = sequence_number_qubit.second;
     if (!qubit_record->isAllocated()) {
-      return sequence_number_qubit;
+      break;
     }
     itr++;
   }
+  return sequence_number_qubit;
 }
 
 std::string BellPairStore::toString() const {
