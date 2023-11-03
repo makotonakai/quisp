@@ -466,9 +466,7 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
 }
 
 int RuleEngine::getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr) {
-  auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr);
-  auto partner_addr_sequence_number_qubit = range.second;
-  auto sequence_number_qubit = partner_addr_sequence_number_qubit->second;
+  auto sequence_number_qubit = bell_pair_store.getFirstAvailableSequenceNumberQubit((QNIC_type)qnic_type, qnic_index, partner_addr);
   return sequence_number_qubit.first;
 }
 
