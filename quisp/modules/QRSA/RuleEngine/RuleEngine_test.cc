@@ -295,6 +295,9 @@ TEST_F(RuleEngineTest, respondToBarrierRequest) {
   sim->setContext(rule_engine);
   rule_engine->callInitialize();
 
+  auto record = new QubitRecord(QNIC_E, 0, 0);
+  rule_engine->bell_pair_store.insertEntangledQubit(1, 2, record);
+
   auto* msg = new BarrierRequest();
   msg->setSrcAddr(1);
   msg->setDestAddr(2);
@@ -309,7 +312,7 @@ TEST_F(RuleEngineTest, respondToBarrierRequest) {
   EXPECT_EQ(pkt->getSrcAddr(), 2);
   EXPECT_EQ(pkt->getDestAddr(), 1);
   EXPECT_EQ(pkt->getRuleSetId(), 111);
-  EXPECT_EQ(pkt->getSequenceNumber(), 0);
+  EXPECT_EQ(pkt->getSequenceNumber(), 1);
 }
 
 TEST_F(RuleEngineTest, sendLinkAllocationUpdateRequestForConnectionSetup) {
