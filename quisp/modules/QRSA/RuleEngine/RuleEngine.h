@@ -118,6 +118,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::unordered_map<std::pair<QNIC_type, int>, messages::EmitPhotonRequest *> emit_photon_timer_map;
   std::unordered_map<std::pair<QNIC_type, int>, std::vector<int>> emitted_photon_order_map;
   std::unordered_map<int, std::vector<unsigned long>> node_address_active_link_allocation_map;
+  std::unordered_map<int, bool> node_address_lau_sent_map;
   std::unordered_map<int, bool> node_address_lau_responded_map;
   int sequence_number = 0;
 };
