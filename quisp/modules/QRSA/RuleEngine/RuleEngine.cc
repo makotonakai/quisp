@@ -139,7 +139,12 @@ void RuleEngine::handleMessage(cMessage *msg) {
       ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(pkt->getNode_addresses_along_path(index));
     }
   } else if (auto *pkt = dynamic_cast<InternalNeighborAddressesMessage *>(msg)) {
-    sendLinkAllocationUpdateRequestForConnectionSetup(pkt);
+    auto src_addr = pkt->getSrcAddr();
+    auto already_sent = node_address_lau_sent_map[src_addr];
+    auto already_responded = node_address_lau_responded_map[src_addr];
+    if (!already_sent && !already_responded) {
+      sendLinkAllocationUpdateRequestForConnectionSetup(pkt);
+    }
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
     handleConnectionTeardownMessage(pkt);
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateRequest *>(msg)) {
@@ -352,7 +357,8 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeigh
   }
 
   for (auto neighbor_address : neighbor_addresses) {
-    if (node_address_lau_responded_map[neighbor_address]) {
+    auto already_sent = node_address_lau_sent_map[neighbor_address];
+    if (already_sent) {
       break;
     }
     LinkAllocationUpdateRequest *pkt = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
@@ -364,6 +370,8 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeigh
     }
     pkt->setRandomNumber(rand());
     send(pkt, "RouterPort$o");
+
+    node_address_lau_sent_map[neighbor_address] = true;
   }
 }
 
@@ -389,6 +397,9 @@ bool RuleEngine::haveAllActiveLinkAllocations(LinkAllocationUpdateRequest *msg) 
 }
 
 void RuleEngine::sendRejectLinkAllocationUpdateRequest(LinkAllocationUpdateRequest *msg) {
+  auto src_addr = msg->getSrcAddr();
+  node_address_lau_responded_map[src_addr] = true;
+
   RejectLinkAllocationUpdateRequest *pkt = new RejectLinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
@@ -412,7 +423,9 @@ void RuleEngine::resendLinkAllocationUpdateRequest(RejectLinkAllocationUpdateReq
 
 void RuleEngine::sendLinkAllocationUpdateResponse(LinkAllocationUpdateRequest *msg) {
   auto src_addr = msg->getSrcAddr();
-  if (node_address_lau_responded_map[src_addr]) {
+  auto already_responded = node_address_lau_responded_map[src_addr];
+  std::cout << already_responded << std::endl;
+  if (already_responded) {
     node_address_lau_responded_map[src_addr] = false;
     return;
   }
