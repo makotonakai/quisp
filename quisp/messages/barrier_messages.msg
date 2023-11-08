@@ -22,6 +22,16 @@ packet BarrierRequest extends Header
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber); 
 }
 
+packet RejectBarrierRequest extends Header
+{
+    int srcAddr;
+    int destAddr;
+    int actualSrcAddr;
+    int actualDestAddr;
+    unsigned long rulesetId @setter(setRuleSetId) @getter(getRuleSetId);
+    int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber); 
+}
+
 packet BarrierResponse extends Header
 {
     int srcAddr;
