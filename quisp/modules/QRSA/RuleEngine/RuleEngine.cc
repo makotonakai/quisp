@@ -295,12 +295,14 @@ void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_i
 }
 
 void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
-  BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setRuleSetId(msg->getStack_of_ActiveLinkAllocations(0));
-  pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
-  send(pkt, "RouterPort$o");
+  for (auto index = 0; index < msg->getStack_of_ActiveLinkAllocationsArraySize(); index++) {
+    BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
+    pkt->setSrcAddr(msg->getDestAddr());
+    pkt->setDestAddr(msg->getSrcAddr());
+    pkt->setRuleSetId(msg->getStack_of_ActiveLinkAllocations(index));
+    pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
+    send(pkt, "RouterPort$o");
+  }
 }
 
 void RuleEngine::respondToBarrierRequest(BarrierRequest *msg) {
