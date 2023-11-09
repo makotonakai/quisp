@@ -158,21 +158,28 @@ void RuleEngine::handleMessage(cMessage *msg) {
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateResponse *>(msg)) {
     sendBarrierRequest(pkt);
   } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
-    auto partner_addr = pkt->getSrcAddr();
-    auto bell_pair_exist = false;
-    for (int i = 0; i < number_of_qnics; i++) {
-      bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
-      if (bell_pair_exist) {
-        break;
-      }
-    }
-    if (bell_pair_exist) {
-      sendBarrierResponse(pkt);
-    } else {
-      sendRejectBarrierRequest(pkt);
-    }
+    // sleep(1);
+    // auto partner_addr = pkt->getSrcAddr();
+    // auto bell_pair_exist = false;
+    // for (int i = 0; i < number_of_qnics; i++) {
+    //   bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
+    //   if (bell_pair_exist) {
+    //     break;
+    //   }
+    // }
+    // if (bell_pair_exist) {
+    //   sendBarrierResponse(pkt);
+    // } else {
+    //   sendRejectBarrierRequest(pkt);
+    // }
+    sendBarrierResponse(pkt);
+    auto ruleset_id = pkt->getRuleSetId();
+    executeRuleSetByRuleSetId(ruleset_id);
   } else if (auto *pkt = dynamic_cast<RejectBarrierRequest *>(msg)) {
     resendBarrierRequest(pkt);
+  } else if (auto *pkt = dynamic_cast<BarrierResponse *>(msg)) {
+    auto ruleset_id = pkt->getRuleSetId();
+    executeRuleSetByRuleSetId(ruleset_id);
   }
   for (int i = 0; i < number_of_qnics; i++) {
     ResourceAllocation(QNIC_E, i);
@@ -463,7 +470,6 @@ void RuleEngine::resendLinkAllocationUpdateRequest(RejectLinkAllocationUpdateReq
 void RuleEngine::sendLinkAllocationUpdateResponse(LinkAllocationUpdateRequest *msg) {
   auto src_addr = msg->getSrcAddr();
   auto already_responded = node_address_lau_responded_map[src_addr];
-  std::cout << already_responded << std::endl;
   if (already_responded) {
     node_address_lau_responded_map[src_addr] = false;
     return;
@@ -520,6 +526,14 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
 int RuleEngine::getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr) {
   auto sequence_number_qubit = bell_pair_store.getFirstAvailableSequenceNumberQubit((QNIC_type)qnic_type, qnic_index, partner_addr);
   return sequence_number_qubit.first;
+}
+
+void RuleEngine::executeRuleSetByRuleSetId(unsigned long ruleset_id) {
+  auto it = runtimes.findById(ruleset_id);
+  if (it != runtimes.end()) {
+    it->exec();
+    std::cout << it->terminated << std::endl;
+  }
 }
 
 void RuleEngine::executeAllRuleSets() {

@@ -98,6 +98,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void resendLinkAllocationUpdateRequest(messages::RejectLinkAllocationUpdateRequest *msg);
   bool bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
   std::vector<unsigned long long> getActiveLinkAllcations();
+  void executeRuleSetByRuleSetId(unsigned long ruleset_id);
   void executeAllRuleSets();
   int getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr);
   std::vector<int> qnode_indices;
