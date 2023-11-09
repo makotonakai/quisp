@@ -171,6 +171,8 @@ void RuleEngine::handleMessage(cMessage *msg) {
     } else {
       sendRejectBarrierRequest(pkt);
     }
+  } else if (auto *pkt = dynamic_cast<RejectBarrierRequest *>(msg)) {
+    resendBarrierRequest(pkt);
   }
   for (int i = 0; i < number_of_qnics; i++) {
     ResourceAllocation(QNIC_E, i);
@@ -324,6 +326,15 @@ void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
 
 void RuleEngine::sendRejectBarrierRequest(BarrierRequest *msg) {
   RejectBarrierRequest *pkt = new RejectBarrierRequest("RejectBarrierRequest");
+  pkt->setSrcAddr(msg->getDestAddr());
+  pkt->setDestAddr(msg->getSrcAddr());
+  pkt->setRuleSetId(msg->getRuleSetId());
+  pkt->setSequenceNumber(msg->getSequenceNumber());
+  send(pkt, "RouterPort$o");
+}
+
+void RuleEngine::resendBarrierRequest(RejectBarrierRequest *msg) {
+  BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setRuleSetId(msg->getRuleSetId());
