@@ -190,6 +190,13 @@ TEST_F(RouterTest, handleBarrierRequest) {
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
+TEST_F(RouterTest, handleRejectBarrierRequest) {
+  auto msg = new RejectBarrierRequest;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
 TEST_F(RouterTest, handleBarrierResponse) {
   auto msg = new BarrierResponse;
   msg->setDestAddr(10);
