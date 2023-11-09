@@ -81,6 +81,18 @@ SequenceNumberQubit BellPairStore::getFirstAvailableSequenceNumberQubit(QNIC_typ
   return sequence_number_qubit;
 }
 
+bool BellPairStore::bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr) {
+  auto key = std::make_pair(qnic_type, qnic_index);
+  if (_resources.find(key) == _resources.cend()) {
+    return false;
+  }
+  auto it = _resources[key].find(addr);
+  if (it == _resources[key].cend()) {
+    return false;
+  }
+  return true;
+}
+
 std::string BellPairStore::toString() const {
   std::stringstream ss;
   for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
