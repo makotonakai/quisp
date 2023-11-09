@@ -151,6 +151,18 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
+  if (auto* req = dynamic_cast<const quisp::messages::RejectBarrierRequest*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"RejectBarrierRequest\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
+    os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
+    os << ", \"ruleset_id\": " << req->getRuleSetId();
+    os << ", \"sequence_number\": " << req->getSequenceNumber();
+    return os.str();
+  }
+
   if (auto* req = dynamic_cast<const quisp::messages::BarrierResponse*>(msg)) {
     std::stringstream os;
     os << "\"msg_type\": \"BarrierResponse\"";
