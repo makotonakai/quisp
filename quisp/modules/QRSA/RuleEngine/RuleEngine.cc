@@ -167,7 +167,7 @@ void RuleEngine::handleMessage(cMessage *msg) {
       }
     }
     if (bell_pair_exist) {
-      respondToBarrierRequest(pkt);
+      sendBarrierResponse(pkt);
     } else {
       sendRejectBarrierRequest(pkt);
     }
@@ -331,7 +331,7 @@ void RuleEngine::sendRejectBarrierRequest(BarrierRequest *msg) {
   send(pkt, "RouterPort$o");
 }
 
-void RuleEngine::respondToBarrierRequest(BarrierRequest *msg) {
+void RuleEngine::sendBarrierResponse(BarrierRequest *msg) {
   BarrierResponse *pkt = new BarrierResponse("BarrierResponse");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());

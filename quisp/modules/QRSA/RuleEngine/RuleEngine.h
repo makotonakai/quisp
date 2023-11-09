@@ -87,7 +87,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
   void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg);
   void sendRejectBarrierRequest(messages::BarrierRequest *msg);
-  void respondToBarrierRequest(messages::BarrierRequest *msg);
+  void sendBarrierResponse(messages::BarrierRequest *msg);
   void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   void sendLinkAllocationUpdateResponse(messages::LinkAllocationUpdateRequest *msg);

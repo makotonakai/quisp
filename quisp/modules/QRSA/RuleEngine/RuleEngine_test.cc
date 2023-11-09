@@ -286,7 +286,7 @@ TEST_F(RuleEngineTest, haveAllActiveLinkAllocations) {
   EXPECT_FALSE(result);
 }
 
-TEST_F(RuleEngineTest, respondToBarrierRequest) {
+TEST_F(RuleEngineTest, sendBarrierResponse) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -304,7 +304,7 @@ TEST_F(RuleEngineTest, respondToBarrierRequest) {
   msg->setRuleSetId(111);
   msg->setSequenceNumber(1);
 
-  rule_engine->respondToBarrierRequest(msg);
+  rule_engine->sendBarrierResponse(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 
