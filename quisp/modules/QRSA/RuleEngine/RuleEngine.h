@@ -86,6 +86,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
   void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg);
+  void sendRejectBarrierRequest(messages::BarrierRequest *msg);
   void respondToBarrierRequest(messages::BarrierRequest *msg);
   void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
@@ -94,6 +95,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   bool haveAllActiveLinkAllocations(messages::LinkAllocationUpdateRequest *msg);
   void sendRejectLinkAllocationUpdateRequest(messages::LinkAllocationUpdateRequest *msg);
   void resendLinkAllocationUpdateRequest(messages::RejectLinkAllocationUpdateRequest *msg);
+  bool bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
   int getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr);

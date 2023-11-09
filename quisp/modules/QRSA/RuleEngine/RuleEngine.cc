@@ -158,7 +158,19 @@ void RuleEngine::handleMessage(cMessage *msg) {
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateResponse *>(msg)) {
     sendBarrierRequest(pkt);
   } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
-    respondToBarrierRequest(pkt);
+    auto partner_addr = pkt->getSrcAddr();
+    auto bell_pair_exist = false;
+    for (int i = 0; i < number_of_qnics; i++) {
+      bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
+      if (bell_pair_exist) {
+        break;
+      }
+    }
+    if (bell_pair_exist) {
+      respondToBarrierRequest(pkt);
+    } else {
+      sendRejectBarrierRequest(pkt);
+    }
   }
   for (int i = 0; i < number_of_qnics; i++) {
     ResourceAllocation(QNIC_E, i);
@@ -294,6 +306,11 @@ void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_i
   }
 }
 
+bool RuleEngine::bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr) {
+  auto bell_pair_exist = bell_pair_store.bellPairExist(qnic_type, qnic_index, partner_addr);
+  return bell_pair_exist;
+}
+
 void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
   for (auto index = 0; index < msg->getStack_of_ActiveLinkAllocationsArraySize(); index++) {
     BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
@@ -303,6 +320,15 @@ void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
     pkt->setSequenceNumber(getSmallestSequenceNumber(QNIC_E, 0, msg->getSrcAddr()));
     send(pkt, "RouterPort$o");
   }
+}
+
+void RuleEngine::sendRejectBarrierRequest(BarrierRequest *msg) {
+  RejectBarrierRequest *pkt = new RejectBarrierRequest("RejectBarrierRequest");
+  pkt->setSrcAddr(msg->getDestAddr());
+  pkt->setDestAddr(msg->getSrcAddr());
+  pkt->setRuleSetId(msg->getRuleSetId());
+  pkt->setSequenceNumber(msg->getSequenceNumber());
+  send(pkt, "RouterPort$o");
 }
 
 void RuleEngine::respondToBarrierRequest(BarrierRequest *msg) {
