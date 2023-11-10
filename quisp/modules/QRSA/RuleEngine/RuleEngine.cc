@@ -158,21 +158,20 @@ void RuleEngine::handleMessage(cMessage *msg) {
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateResponse *>(msg)) {
     sendBarrierRequest(pkt);
   } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
-    // sleep(1);
-    // auto partner_addr = pkt->getSrcAddr();
-    // auto bell_pair_exist = false;
-    // for (int i = 0; i < number_of_qnics; i++) {
-    //   bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
-    //   if (bell_pair_exist) {
-    //     break;
-    //   }
-    // }
-    // if (bell_pair_exist) {
-    //   sendBarrierResponse(pkt);
-    // } else {
-    //   sendRejectBarrierRequest(pkt);
-    // }
-    sendBarrierResponse(pkt);
+    auto partner_addr = pkt->getSrcAddr();
+    auto bell_pair_exist = false;
+    for (int i = 0; i < number_of_qnics; i++) {
+      bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
+      if (bell_pair_exist) {
+        break;
+      }
+    }
+    if (bell_pair_exist) {
+      sendBarrierResponse(pkt);
+    } else {
+      sendRejectBarrierRequest(pkt);
+    }
+    // sendBarrierResponse(pkt);
     auto ruleset_id = pkt->getRuleSetId();
     executeRuleSetByRuleSetId(ruleset_id);
   } else if (auto *pkt = dynamic_cast<RejectBarrierRequest *>(msg)) {
@@ -316,7 +315,7 @@ void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_i
 }
 
 bool RuleEngine::bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr) {
-  auto bell_pair_exist = bell_pair_store.bellPairExist(qnic_type, qnic_index, partner_addr);
+  auto bell_pair_exist = bell_pair_store.bellPairExist(partner_addr);
   return bell_pair_exist;
 }
 
@@ -532,7 +531,6 @@ void RuleEngine::executeRuleSetByRuleSetId(unsigned long ruleset_id) {
   auto it = runtimes.findById(ruleset_id);
   if (it != runtimes.end()) {
     it->exec();
-    std::cout << it->terminated << std::endl;
   }
 }
 
