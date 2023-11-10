@@ -59,26 +59,18 @@ PartnerAddrSequenceNumberQubitMapRange BellPairStore::getBellPairsRange(QNIC_typ
   return _resources[key].equal_range(partner_addr);
 }
 
-SequenceNumberQubit BellPairStore::getFirstAvailableSequenceNumberQubit(QNIC_type qnic_type, int qnic_index, int partner_addr) {
-  auto key = std::make_pair(qnic_type, qnic_index);
-  if (_resources.find(key) == _resources.cend()) {
-    _resources.emplace(key, std::multimap<int, SequenceNumberQubit>{});
-  }
-
-  auto itr = _resources[key].find(partner_addr);
-  auto count = _resources[key].count(partner_addr);
-
-  SequenceNumberQubit sequence_number_qubit;
-  qrsa::IQubitRecord *qubit_record;
-  for (auto i = 0; i < count; i++) {
-    sequence_number_qubit = itr->second;
-    qubit_record = sequence_number_qubit.second;
-    if (!qubit_record->isAllocated()) {
-      break;
+PartnerAddrSequenceNumberQubitMap::iterator BellPairStore::getFirstAvailableSequenceNumberQubit(QNodeAddr addr) {
+  for (auto itr = _resources.begin(); itr != _resources.end(); itr++) {
+    auto key = itr->first;
+    auto qnic_index = key.second;
+    auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
+    int count = 0;
+    for (auto it = range.first; it != range.second; it++) {
+      if (!it->second.second->isAllocated()) {
+        return it;
+      }
     }
-    itr++;
   }
-  return sequence_number_qubit;
 }
 
 bool BellPairStore::bellPairExist(QNodeAddr addr) {
