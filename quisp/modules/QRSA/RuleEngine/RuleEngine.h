@@ -100,7 +100,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeRuleSetByRuleSetId(unsigned long ruleset_id);
   void executeAllRuleSets();
-  int getSmallestSequenceNumber(int qnic_type, int qnic_index, int partner_addr);
+  int getSmallestSequenceNumber(QNodeAddr partner_addr);
+  int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(BarrierRequest *msg);
   std::vector<int> qnode_indices;
 
  protected:
