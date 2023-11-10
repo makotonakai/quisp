@@ -370,6 +370,14 @@ int RuleEngine::getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(Barrier
   return std::max(incoming_sequence_number, my_sequence_number);
 }
 
+void RuleEngine::assignQubitRecordToRuntime(int sequence_number, unsigned long ruleset_id, int partner_addr) {
+  auto runtime = runtimes.findById(ruleset_id);
+  auto qubit_record = bell_pair_store.findQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
+  qubit_record->setBusy(true);
+  qubit_record->setAllocated(true);
+  runtime.assignQubitToRuleSet(partner_addr, qubit_record);
+}
+
 void RuleEngine::sendLinkAllocationUpdateRequestForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
   if (msg->getLAU_destAddr_left() != -1) {
     LinkAllocationUpdateRequest *pkt1 = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
