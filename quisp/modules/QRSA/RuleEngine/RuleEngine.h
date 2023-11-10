@@ -101,7 +101,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void executeRuleSetByRuleSetId(unsigned long ruleset_id);
   void executeAllRuleSets();
   int getSmallestSequenceNumber(QNodeAddr partner_addr);
-  int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(BarrierRequest *msg);
+  int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(messages::BarrierRequest *msg);
   std::vector<int> qnode_indices;
 
  protected:
