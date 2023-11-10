@@ -4,6 +4,8 @@
 #include "modules/QNIC.h"
 #include "modules/QRSA/QRSA.h"
 
+using quisp::modules::qubit_record::IQubitRecord;
+
 namespace quisp::modules {
 BellPairStore::BellPairStore(Logger::ILogger *logger) : logger(logger) {}
 BellPairStore::~BellPairStore() {}
@@ -66,7 +68,8 @@ PartnerAddrSequenceNumberQubitMap::iterator BellPairStore::getFirstAvailableSequ
     auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
     int count = 0;
     for (auto it = range.first; it != range.second; it++) {
-      if (!it->second.second->isAllocated()) {
+      auto qubit_record = it->second.second;
+      if (!qubit_record->isAllocated()) {
         return it;
       }
     }
@@ -87,6 +90,20 @@ bool BellPairStore::bellPairExist(QNodeAddr addr) {
     }
   }
   return false;
+}
+
+qrsa::IQubitRecord *BellPairStore::findQubitRecordBySequenceNumberAndPartnerAddress(int sequence_number, int addr) {
+  for (auto itr = _resources.begin(); itr != _resources.end(); itr++) {
+    auto key = itr->first;
+    auto qnic_index = key.second;
+    auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
+    int count = 0;
+    for (auto it = range.first; it != range.second; it++) {
+      if (it->second.first == sequence_number) {
+        return it->second.second;
+      }
+    }
+  }
 }
 
 std::string BellPairStore::toString() const {
