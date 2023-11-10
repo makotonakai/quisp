@@ -30,7 +30,7 @@ class BellPairStore {
   qrsa::IQubitRecord* findQubit(int sequence_number, QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr);
   PartnerAddrSequenceNumberQubitMapRange getBellPairsRange(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
   SequenceNumberQubit getFirstAvailableSequenceNumberQubit(QNIC_type qnic_type, int qnic_index, int partner_addr);
-  bool bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr);
+  bool bellPairExist(QNodeAddr addr);
   std::string toString() const;
   Logger::ILogger* logger;
 
