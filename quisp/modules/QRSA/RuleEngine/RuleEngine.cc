@@ -173,7 +173,6 @@ void RuleEngine::handleMessage(cMessage *msg) {
       auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(pkt);
       auto partner_addr = pkt->getSrcAddr();
       auto qubit_record = bell_pair_store.findQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
-      qubit_record->setBusy(true);
       qubit_record->setAllocated(true);
       runtime->assignQubitToRuleSet(partner_addr, qubit_record);
 
@@ -187,6 +186,14 @@ void RuleEngine::handleMessage(cMessage *msg) {
   } else if (auto *pkt = dynamic_cast<RejectBarrierRequest *>(msg)) {
     resendBarrierRequest(pkt);
   } else if (auto *pkt = dynamic_cast<BarrierResponse *>(msg)) {
+    auto ruleset_id = pkt->getRuleSetId();
+    auto runtime = runtimes.findById(ruleset_id);
+
+    auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
+    auto partner_addr = pkt->getSrcAddr();
+    auto qubit_record = bell_pair_store.findQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
+    qubit_record->setAllocated(true);
+    runtime->assignQubitToRuleSet(partner_addr, qubit_record);
     // auto ruleset_id = pkt->getRuleSetId();
     // executeRuleSetByRuleSetId(ruleset_id);
   }
