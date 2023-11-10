@@ -172,7 +172,7 @@ void RuleEngine::handleMessage(cMessage *msg) {
 
       auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(pkt);
       auto partner_addr = pkt->getSrcAddr();
-      auto qubit_record = bell_pair_store.findQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
+      auto qubit_record = bell_pair_store.findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
       qubit_record->setAllocated(true);
       runtime->assignQubitToRuleSet(partner_addr, qubit_record);
 
@@ -191,7 +191,7 @@ void RuleEngine::handleMessage(cMessage *msg) {
 
     auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
     auto partner_addr = pkt->getSrcAddr();
-    auto qubit_record = bell_pair_store.findQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
+    auto qubit_record = bell_pair_store.findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
     qubit_record->setAllocated(true);
     runtime->assignQubitToRuleSet(partner_addr, qubit_record);
     // auto ruleset_id = pkt->getRuleSetId();

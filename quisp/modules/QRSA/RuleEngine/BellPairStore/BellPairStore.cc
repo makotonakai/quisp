@@ -92,7 +92,7 @@ bool BellPairStore::bellPairExist(QNodeAddr addr) {
   return false;
 }
 
-qrsa::IQubitRecord *BellPairStore::findQubitRecordBySequenceNumberAndPartnerAddress(int sequence_number, int addr) {
+qrsa::IQubitRecord *BellPairStore::findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(int sequence_number, int addr) {
   for (auto itr = _resources.begin(); itr != _resources.end(); itr++) {
     auto key = itr->first;
     auto qnic_index = key.second;
