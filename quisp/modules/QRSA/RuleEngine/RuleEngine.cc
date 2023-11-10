@@ -353,9 +353,8 @@ void RuleEngine::sendBarrierResponse(BarrierRequest *msg) {
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setRuleSetId(msg->getRuleSetId());
-  auto incoming_sequence_number = msg->getSequenceNumber();
-  auto my_sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
-  pkt->setSequenceNumber(std::max(incoming_sequence_number, my_sequence_number));
+  auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(msg);
+  pkt->setSequenceNumber(sequence_number);
   send(pkt, "RouterPort$o");
 }
 
