@@ -167,6 +167,16 @@ void RuleEngine::handleMessage(cMessage *msg) {
       }
     }
     if (bell_pair_exist) {
+      auto ruleset_id = pkt->getRuleSetId();
+      auto runtime = runtimes.findById(ruleset_id);
+
+      auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(pkt);
+      auto partner_addr = pkt->getSrcAddr();
+      auto qubit_record = bell_pair_store.findQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
+      qubit_record->setBusy(true);
+      qubit_record->setAllocated(true);
+      runtime->assignQubitToRuleSet(partner_addr, qubit_record);
+
       sendBarrierResponse(pkt);
     } else {
       sendRejectBarrierRequest(pkt);
@@ -368,14 +378,6 @@ int RuleEngine::getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(Barrier
   auto incoming_sequence_number = msg->getSequenceNumber();
   auto my_sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
   return std::max(incoming_sequence_number, my_sequence_number);
-}
-
-void RuleEngine::assignQubitRecordToRuntime(int sequence_number, unsigned long ruleset_id, int partner_addr) {
-  auto runtime = runtimes.findById(ruleset_id);
-  auto qubit_record = bell_pair_store.findQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
-  qubit_record->setBusy(true);
-  qubit_record->setAllocated(true);
-  runtime.assignQubitToRuleSet(partner_addr, qubit_record);
 }
 
 void RuleEngine::sendLinkAllocationUpdateRequestForConnectionTeardown(InternalConnectionTeardownMessage *msg) {

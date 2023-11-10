@@ -103,7 +103,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   int getSmallestSequenceNumber(QNodeAddr partner_addr);
   int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(messages::BarrierRequest *msg);
   int getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(messages::BarrierResponse *msg);
-  void assignQubitRecordToRuntime(int sequence_number, unsigned long ruleset_id, int partner_addr);
   std::vector<int> qnode_indices;
 
  protected:
