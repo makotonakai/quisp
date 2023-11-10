@@ -100,7 +100,10 @@ qrsa::IQubitRecord *BellPairStore::findQubitRecordBySequenceNumberAndPartnerAddr
     int count = 0;
     for (auto it = range.first; it != range.second; it++) {
       if (it->second.first == sequence_number) {
-        return it->second.second;
+        auto qubit_record = it->second.second;
+        if (!qubit_record->isAllocated()) {
+          return qubit_record;
+        }
       }
     }
   }
