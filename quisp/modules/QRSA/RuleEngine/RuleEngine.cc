@@ -365,6 +365,12 @@ int RuleEngine::getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(BarrierR
   return std::max(incoming_sequence_number, my_sequence_number);
 }
 
+int RuleEngine::getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(BarrierResponse *msg) {
+  auto incoming_sequence_number = msg->getSequenceNumber();
+  auto my_sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
+  return std::max(incoming_sequence_number, my_sequence_number);
+}
+
 void RuleEngine::sendLinkAllocationUpdateRequestForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
   if (msg->getLAU_destAddr_left() != -1) {
     LinkAllocationUpdateRequest *pkt1 = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
