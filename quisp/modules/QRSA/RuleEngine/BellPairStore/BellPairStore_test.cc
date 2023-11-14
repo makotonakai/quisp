@@ -134,4 +134,11 @@ TEST_F(BellPairStoreTest, getRangeWithLoop) {
   }
   EXPECT_EQ(count, 4);
 }
+
+TEST_F(BellPairStoreTest, findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress) {
+  store.insertEntangledQubit(0, 7, qubit1);
+  auto qubit_record = store.findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(0, 7);
+  EXPECT_EQ(qubit_record, qubit1);
+}
+
 }  // namespace
