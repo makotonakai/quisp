@@ -320,10 +320,15 @@ TEST_F(RuleEngineTest, getRuleSetIdBySequenceNumber) {
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
   auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  auto sequence_number = 1;
-  rule_engine->sequence_number_ruleset_id_map[sequence_number] = 111;
-  auto ruleset_id = rule_engine->getRuleSetIdBySequenceNumber(sequence_number);
-  EXPECT_EQ(ruleset_id, 111);
+
+  auto sequence_number1 = 1;
+  rule_engine->sequence_number_ruleset_id_map[sequence_number1] = 111;
+  auto ruleset_id1 = rule_engine->getRuleSetIdBySequenceNumber(sequence_number1);
+  EXPECT_EQ(ruleset_id1, 111);
+
+  auto sequence_number2 = 2;
+  auto ruleset_id2 = rule_engine->getRuleSetIdBySequenceNumber(sequence_number2);
+  EXPECT_EQ(ruleset_id2, -1);
 }
 
 TEST_F(RuleEngineTest, sendLinkAllocationUpdateRequestForConnectionSetup) {

@@ -73,6 +73,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::map<unsigned long, vector<int>> ruleset_id_node_addresses_along_path_map;
   std::map<unsigned long, unsigned long> current_ruleset_id_next_ruleset_id_map;
   std::map<unsigned long, vector<int>> ruleset_id_qnic_addresses_map;
+  std::vector<int> qnode_indices;
+  std::map<int, unsigned long> sequence_number_ruleset_id_map;
 
   IHardwareMonitor *hardware_monitor;
   IRoutingDaemon *routingdaemon;
@@ -103,7 +105,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   int getSmallestSequenceNumber(QNodeAddr partner_addr);
   int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(messages::BarrierRequest *msg);
   int getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(messages::BarrierResponse *msg);
-  std::vector<int> qnode_indices;
+  unsigned long getRuleSetIdBySequenceNumber(int sequence_number);
 
  protected:
   void initialize() override;
