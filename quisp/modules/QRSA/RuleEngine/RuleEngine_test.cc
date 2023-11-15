@@ -315,6 +315,17 @@ TEST_F(RuleEngineTest, sendBarrierResponse) {
   EXPECT_EQ(pkt->getSequenceNumber(), 2);
 }
 
+TEST_F(RuleEngineTest, getRuleSetIdBySequenceNumber) {
+  auto* sim = prepareSimulation();
+  auto* routing_daemon = new MockRoutingDaemon();
+  auto* hardware_monitor = new MockHardwareMonitor();
+  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
+  auto sequence_number = 1;
+  rule_engine->sequence_number_ruleset_id_map[sequence_number] = 111;
+  auto ruleset_id = rule_engine->getRuleSetIdBySequenceNumber(sequence_number);
+  EXPECT_EQ(ruleset_id, 111);
+}
+
 TEST_F(RuleEngineTest, sendLinkAllocationUpdateRequestForConnectionSetup) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
