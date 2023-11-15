@@ -173,10 +173,13 @@ void RuleEngine::handleMessage(cMessage *msg) {
       auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(pkt);
       auto partner_addr = pkt->getSrcAddr();
       auto qubit_record = bell_pair_store.findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
-      qubit_record->setAllocated(true);
-      runtime->assignQubitToRuleSet(partner_addr, qubit_record);
-
-      sendBarrierResponse(pkt);
+      auto existing_ruleset_id = getRuleSetIdBySequenceNumber(sequence_number);
+      if (existing_ruleset_id == -1) {
+        sequence_number_ruleset_id_map[sequence_number] = ruleset_id;
+        sendBarrierResponse(pkt);
+      } else {
+        sendRejectBarrierRequest(pkt);
+      }
     } else {
       sendRejectBarrierRequest(pkt);
     }
@@ -186,14 +189,18 @@ void RuleEngine::handleMessage(cMessage *msg) {
   } else if (auto *pkt = dynamic_cast<RejectBarrierRequest *>(msg)) {
     resendBarrierRequest(pkt);
   } else if (auto *pkt = dynamic_cast<BarrierResponse *>(msg)) {
-    auto ruleset_id = pkt->getRuleSetId();
-    auto runtime = runtimes.findById(ruleset_id);
+    // auto ruleset_id = pkt->getRuleSetId();
+    // auto runtime = runtimes.findById(ruleset_id);
 
-    auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
-    auto partner_addr = pkt->getSrcAddr();
-    auto qubit_record = bell_pair_store.findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
-    qubit_record->setAllocated(true);
-    runtime->assignQubitToRuleSet(partner_addr, qubit_record);
+    // auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
+    // auto partner_addr = pkt->getSrcAddr();
+    // auto qubit_record = bell_pair_store.findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(sequence_number, partner_addr);
+    // if (!runtime->isQubitLocked(qubit_record)) {
+    //   qubit_record->setAllocated(true);
+    //   runtime->assignQubitToRuleSet(partner_addr, qubit_record);
+    // }
+
+    // runtime->exec();
     // auto ruleset_id = pkt->getRuleSetId();
     // executeRuleSetByRuleSetId(ruleset_id);
   }
@@ -344,6 +351,7 @@ void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
     pkt->setRuleSetId(msg->getStack_of_ActiveLinkAllocations(index));
     pkt->setSequenceNumber(getSmallestSequenceNumber(msg->getSrcAddr()));
     send(pkt, "RouterPort$o");
+    sleep(1);
   }
 }
 
@@ -373,6 +381,14 @@ void RuleEngine::sendBarrierResponse(BarrierRequest *msg) {
   auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(msg);
   pkt->setSequenceNumber(sequence_number);
   send(pkt, "RouterPort$o");
+}
+
+unsigned long RuleEngine::getRuleSetIdBySequenceNumber(int sequence_number) {
+  for (auto it = sequence_number_ruleset_id_map.begin(); it != sequence_number_ruleset_id_map.end(); ++it)
+    if (it->first == sequence_number) {
+      return it->second;
+    }
+  return -1;
 }
 
 int RuleEngine::getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(BarrierRequest *msg) {
