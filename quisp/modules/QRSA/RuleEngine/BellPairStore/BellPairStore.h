@@ -32,6 +32,8 @@ class BellPairStore {
   PartnerAddrSequenceNumberQubitMap::iterator getFirstAvailableSequenceNumberQubit(QNodeAddr addr);
   bool bellPairExist(QNodeAddr addr);
   qrsa::IQubitRecord* findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(int sequence_number, int addr);
+
+  void allocateQubitRecord(int sequence_number, int addr, qrsa::IQubitRecord* qubit_record);
   std::string toString() const;
   Logger::ILogger* logger;
 

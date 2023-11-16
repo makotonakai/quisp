@@ -142,9 +142,20 @@ TEST_F(BellPairStoreTest, findFirstFreeQubitRecordBySequenceNumberAndPartnerAddr
 }
 
 TEST_F(BellPairStoreTest, getFirstAvailableSequenceNumberQubit) {
-  store.insertEntangledQubit(0, 7, qubit1);
+  store.insertEntangledQubit(1, 7, qubit1);
   auto it = store.getFirstAvailableSequenceNumberQubit(7);
   EXPECT_EQ(it->first, 7);
+  EXPECT_EQ(it->second.second, qubit1);
+}
+
+TEST_F(BellPairStoreTest, allocateQubitRecord) {
+  store.insertEntangledQubit(1, 7, qubit1);
+  auto it = store.getFirstAvailableSequenceNumberQubit(7);
+  auto partner_addr = it->first;
+  auto sequence_number = it->second.first;
+  auto qubit_record = it->second.second;
+  store.allocateQubitRecord(sequence_number, partner_addr, qubit_record);
+  EXPECT_FALSE(qubit1->isAllocated());
 }
 
 }  // namespace

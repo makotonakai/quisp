@@ -62,8 +62,7 @@ PartnerAddrSequenceNumberQubitMapRange BellPairStore::getBellPairsRange(QNIC_typ
 }
 
 PartnerAddrSequenceNumberQubitMap::iterator BellPairStore::getFirstAvailableSequenceNumberQubit(QNodeAddr addr) {
-  for (auto itr = _resources.begin(); itr != _resources.end(); itr++) {
-    auto key = itr->first;
+  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
     auto qnic_index = key.second;
     auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
     int count = 0;
@@ -77,8 +76,7 @@ PartnerAddrSequenceNumberQubitMap::iterator BellPairStore::getFirstAvailableSequ
 }
 
 bool BellPairStore::bellPairExist(QNodeAddr addr) {
-  for (auto itr = _resources.begin(); itr != _resources.end(); itr++) {
-    auto key = itr->first;
+  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
     auto qnic_index = key.second;
     auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
     int count = 0;
@@ -93,8 +91,7 @@ bool BellPairStore::bellPairExist(QNodeAddr addr) {
 }
 
 qrsa::IQubitRecord *BellPairStore::findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(int sequence_number, int addr) {
-  for (auto itr = _resources.begin(); itr != _resources.end(); itr++) {
-    auto key = itr->first;
+  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
     auto qnic_index = key.second;
     auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
     int count = 0;
@@ -104,6 +101,21 @@ qrsa::IQubitRecord *BellPairStore::findFirstFreeQubitRecordBySequenceNumberAndPa
         if (!qubit_record->isAllocated()) {
           return qubit_record;
         }
+      }
+    }
+  }
+}
+
+void BellPairStore::allocateQubitRecord(int sequence_number, int addr, qrsa::IQubitRecord *qubit_record) {
+  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
+    auto qnic_index = key.second;
+    auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
+    int count = 0;
+    for (auto it = range.first; it != range.second; it++) {
+      auto _sequence_number = it->second.first;
+      auto _qubit_record = it->second.second;
+      if (_sequence_number == sequence_number && _qubit_record == qubit_record && !_qubit_record->isAllocated()) {
+        it->second.second->setAllocated(true);
       }
     }
   }
