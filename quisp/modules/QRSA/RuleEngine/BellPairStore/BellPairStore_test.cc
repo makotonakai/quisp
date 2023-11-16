@@ -155,7 +155,7 @@ TEST_F(BellPairStoreTest, allocateQubitRecord) {
   auto sequence_number = it->second.first;
   auto qubit_record = it->second.second;
   store.allocateQubitRecord(sequence_number, partner_addr, qubit_record);
-  EXPECT_FALSE(qubit1->isAllocated());
+  EXPECT_TRUE(qubit1->isAllocated());
 }
 
 }  // namespace
