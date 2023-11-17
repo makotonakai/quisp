@@ -23,11 +23,11 @@ class BellPairStore : public quisp::modules::BellPairStore {
 class BellPairStoreTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    qubit1 = new QubitRecord(QNIC_E, 3, 6);
-    qubit2 = new QubitRecord(QNIC_E, 3, 6);
-    qubit3 = new QubitRecord(QNIC_E, 3, 6);
-    qubit4 = new QubitRecord(QNIC_E, 3, 6);
     logger = new DisabledLogger{};
+    qubit1 = new QubitRecord(QNIC_E, 3, 6, logger);
+    qubit2 = new QubitRecord(QNIC_E, 3, 6, logger);
+    qubit3 = new QubitRecord(QNIC_E, 3, 6, logger);
+    qubit4 = new QubitRecord(QNIC_E, 3, 6, logger);
     store = BellPairStore(logger);
   }
 
