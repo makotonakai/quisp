@@ -4,7 +4,7 @@
 #include "modules/QNIC.h"
 #include "modules/QRSA/QRSA.h"
 
-using quisp::modules::qubit_record::IQubitRecord;
+using IQubitRecord = quisp::modules::qubit_record::IQubitRecord;
 
 namespace quisp::modules {
 BellPairStore::BellPairStore(Logger::ILogger *logger) : logger(logger) {}
@@ -90,35 +90,21 @@ bool BellPairStore::bellPairExist(QNodeAddr addr) {
   return false;
 }
 
-qrsa::IQubitRecord *BellPairStore::findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(int sequence_number, int addr) {
+IQubitRecord *BellPairStore::allocateFirstAvailableQubitRecord(int sequence_number, int addr) {
+  IQubitRecord *qubit_record;
   for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
     auto qnic_index = key.second;
     auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
     int count = 0;
     for (auto it = range.first; it != range.second; it++) {
-      if (it->second.first == sequence_number) {
-        auto qubit_record = it->second.second;
-        if (!qubit_record->isAllocated()) {
-          return qubit_record;
-        }
-      }
-    }
-  }
-}
-
-void BellPairStore::allocateQubitRecord(int sequence_number, int addr, qrsa::IQubitRecord *qubit_record) {
-  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
-    auto qnic_index = key.second;
-    auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
-    int count = 0;
-    for (auto it = range.first; it != range.second; it++) {
-      auto _sequence_number = it->second.first;
-      auto _qubit_record = it->second.second;
-      if (_sequence_number == sequence_number && _qubit_record == qubit_record && !_qubit_record->isAllocated()) {
+      if (!it->second.second->isAllocated()) {
         it->second.second->setAllocated(true);
+        qubit_record = it->second.second;
+        break;
       }
     }
   }
+  return qubit_record;
 }
 
 std::string BellPairStore::toString() const {

@@ -135,12 +135,6 @@ TEST_F(BellPairStoreTest, getRangeWithLoop) {
   EXPECT_EQ(count, 4);
 }
 
-TEST_F(BellPairStoreTest, findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress) {
-  store.insertEntangledQubit(0, 7, qubit1);
-  auto qubit_record = store.findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(0, 7);
-  EXPECT_EQ(qubit_record, qubit1);
-}
-
 TEST_F(BellPairStoreTest, getFirstAvailableSequenceNumberQubit) {
   store.insertEntangledQubit(1, 7, qubit1);
   auto it = store.getFirstAvailableSequenceNumberQubit(7);
@@ -148,13 +142,14 @@ TEST_F(BellPairStoreTest, getFirstAvailableSequenceNumberQubit) {
   EXPECT_EQ(it->second.second, qubit1);
 }
 
-TEST_F(BellPairStoreTest, allocateQubitRecord) {
+TEST_F(BellPairStoreTest, allocateFirstAvailableQubitRecord) {
   store.insertEntangledQubit(1, 7, qubit1);
-  auto it = store.getFirstAvailableSequenceNumberQubit(7);
-  auto partner_addr = it->first;
-  auto sequence_number = it->second.first;
-  auto qubit_record = it->second.second;
-  store.allocateQubitRecord(sequence_number, partner_addr, qubit_record);
+  auto it1 = store.getFirstAvailableSequenceNumberQubit(7);
+  auto partner_addr1 = it1->first;
+  auto sequence_number1 = it1->second.first;
+  auto qubit_record1 = it1->second.second;
+  EXPECT_FALSE(qubit1->isAllocated());
+  store.allocateFirstAvailableQubitRecord(sequence_number1, partner_addr1);
   EXPECT_TRUE(qubit1->isAllocated());
 }
 
