@@ -175,7 +175,8 @@ void RuleEngine::handleMessage(cMessage *msg) {
       if (existing_ruleset_id == -1) {
         sequence_number_ruleset_id_map[sequence_number] = ruleset_id;
         auto *allocated_qubit_record = bell_pair_store.allocateFirstAvailableQubitRecord(sequence_number, partner_addr);
-        std::cout << "Address: " << parentAddress << " Allocated: " << allocated_qubit_record->isAllocated() << std::endl;
+        auto is_allocated = allocated_qubit_record->isAllocated();
+        std::cout << "Address: " << parentAddress << " Allocated: " << is_allocated << std::endl;
         runtime->assignQubitToRuleSet(partner_addr, allocated_qubit_record);
         sendBarrierResponse(pkt);
       } else {
@@ -193,7 +194,8 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
     auto partner_addr = pkt->getSrcAddr();
     auto *allocated_qubit_record = bell_pair_store.allocateFirstAvailableQubitRecord(sequence_number, partner_addr);
-    std::cout << "Address: " << parentAddress << " Allocated: " << allocated_qubit_record->isAllocated() << std::endl;
+    auto is_allocated = allocated_qubit_record->isAllocated();
+    std::cout << "Address: " << parentAddress << " Allocated: " << is_allocated << std::endl;
     runtime->assignQubitToRuleSet(partner_addr, allocated_qubit_record);
     // runtime->exec();
     // if (!runtime->isQubitLocked(qubit_record)) {
