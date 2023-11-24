@@ -61,20 +61,20 @@ PartnerAddrSequenceNumberQubitMapRange BellPairStore::getBellPairsRange(QNIC_typ
   return _resources[key].equal_range(partner_addr);
 }
 
-PartnerAddrSequenceNumberQubitMap::iterator BellPairStore::getFirstAvailableSequenceNumberQubit(QNodeAddr addr) {
-  PartnerAddrSequenceNumberQubitMap::iterator _it;
+int BellPairStore::getFirstAvailableSequenceNumberQubit(QNodeAddr addr) {
+  int sequence_number = -1;
   for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
     auto qnic_index = key.second;
     auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
-    int count = 0;
     for (auto it = range.first; it != range.second; it++) {
       auto qubit_record = it->second.second;
       if (!qubit_record->isAllocated()) {
-        return it;
+        sequence_number = it->second.first;
+        break;
       }
     }
   }
-  return _it;
+  return sequence_number;
 }
 
 bool BellPairStore::bellPairExist(QNodeAddr addr) {

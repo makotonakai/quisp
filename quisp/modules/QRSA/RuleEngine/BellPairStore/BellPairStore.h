@@ -29,7 +29,7 @@ class BellPairStore {
   void insertEntangledQubit(int sequence_number, QNodeAddr partner_addr, qrsa::IQubitRecord* qubit);
   qrsa::IQubitRecord* findQubit(int sequence_number, QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr addr);
   PartnerAddrSequenceNumberQubitMapRange getBellPairsRange(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
-  PartnerAddrSequenceNumberQubitMap::iterator getFirstAvailableSequenceNumberQubit(QNodeAddr addr);
+  int getFirstAvailableSequenceNumberQubit(QNodeAddr addr);
   bool bellPairExist(QNodeAddr addr);
   qrsa::IQubitRecord* findFirstFreeQubitRecordBySequenceNumberAndPartnerAddress(int sequence_number, int addr);
   qrsa::IQubitRecord* allocateFirstAvailableQubitRecord(int sequence_number, int addr);

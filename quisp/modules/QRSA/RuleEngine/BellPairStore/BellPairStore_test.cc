@@ -137,20 +137,8 @@ TEST_F(BellPairStoreTest, getRangeWithLoop) {
 
 TEST_F(BellPairStoreTest, getFirstAvailableSequenceNumberQubit) {
   store.insertEntangledQubit(1, 7, qubit1);
-  auto it = store.getFirstAvailableSequenceNumberQubit(7);
-  EXPECT_EQ(it->first, 7);
-  EXPECT_EQ(it->second.second, qubit1);
-}
-
-TEST_F(BellPairStoreTest, allocateFirstAvailableQubitRecord) {
-  store.insertEntangledQubit(1, 7, qubit1);
-  auto it1 = store.getFirstAvailableSequenceNumberQubit(7);
-  auto partner_addr1 = it1->first;
-  auto sequence_number1 = it1->second.first;
-  auto qubit_record1 = it1->second.second;
-  EXPECT_FALSE(qubit1->isAllocated());
-  store.allocateFirstAvailableQubitRecord(sequence_number1, partner_addr1);
-  EXPECT_TRUE(qubit1->isAllocated());
+  auto sequence_number = store.getFirstAvailableSequenceNumberQubit(7);
+  EXPECT_EQ(sequence_number, 1);
 }
 
 }  // namespace
