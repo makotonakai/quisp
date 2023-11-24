@@ -312,7 +312,7 @@ TEST_F(RuleEngineTest, sendBarrierResponse) {
   EXPECT_EQ(pkt->getSrcAddr(), 2);
   EXPECT_EQ(pkt->getDestAddr(), 1);
   EXPECT_EQ(pkt->getRuleSetId(), 111);
-  EXPECT_EQ(pkt->getSequenceNumber(), 2);
+  EXPECT_EQ(pkt->getSequenceNumber(), 1);
 }
 
 TEST_F(RuleEngineTest, getRuleSetIdBySequenceNumber) {
