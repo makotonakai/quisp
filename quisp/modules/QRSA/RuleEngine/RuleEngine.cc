@@ -573,8 +573,8 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
 }
 
 int RuleEngine::getSmallestSequenceNumber(QNodeAddr partner_addr) {
-  auto sequence_number_qubit = bell_pair_store.getFirstAvailableSequenceNumberQubit(partner_addr);
-  return sequence_number_qubit->first;
+  auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumberQubit(partner_addr);
+  return sequence_number;
 }
 
 void RuleEngine::executeRuleSetByRuleSetId(unsigned long ruleset_id) {
