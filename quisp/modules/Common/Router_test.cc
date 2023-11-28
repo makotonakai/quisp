@@ -204,6 +204,13 @@ TEST_F(RouterTest, handleBarrierResponse) {
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
+TEST_F(RouterTest, handleWaitMessage) {
+  auto msg = new WaitMessage;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
 TEST_F(RouterTest, handleLinkAllocationUpdateRequest) {
   auto msg = new LinkAllocationUpdateRequest;
   msg->setDestAddr(10);
