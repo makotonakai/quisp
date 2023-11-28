@@ -128,6 +128,10 @@ void Router::handleMessage(cMessage *msg) {
     bubble("Barrier Response packet received");
     send(pk, "rePort$o");
     return;
+  } else if (dest_addr == my_address && dynamic_cast<WaitMessage *>(msg)) {
+    bubble("Wait Message packet received");
+    send(pk, "rePort$o");
+    return;
   } else if (dest_addr == my_address && dynamic_cast<LinkAllocationUpdateRequest *>(msg)) {
     bubble("Link Allocation Update Request packet received");
     send(pk, "rePort$o");
