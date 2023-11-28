@@ -87,10 +87,13 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
-  void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg);
+  void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg, unsigned long ruleset_id, int sequence_number);
   void sendRejectBarrierRequest(messages::BarrierRequest *msg);
   void resendBarrierRequest(messages::RejectBarrierRequest *msg);
   void sendBarrierResponse(messages::BarrierRequest *msg);
+  void finallySendBarrierRequest(messages::WaitMessage *msg, unsigned long ruleset_id);
+  void sendWaitMessage(messages::LinkAllocationUpdateResponse *msg);
+  void sendWaitMessageAgain(messages::WaitMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   void sendLinkAllocationUpdateResponse(messages::LinkAllocationUpdateRequest *msg);
@@ -102,7 +105,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeRuleSetByRuleSetId(unsigned long ruleset_id);
   void executeAllRuleSets();
-  int getSmallestSequenceNumber(QNodeAddr partner_addr);
+  std::vector<int> getSmallestSequenceNumbers(QNodeAddr partner_addr, int number);
   int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(messages::BarrierRequest *msg);
   int getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(messages::BarrierResponse *msg);
   unsigned long getRuleSetIdBySequenceNumber(int sequence_number);
