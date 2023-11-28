@@ -424,11 +424,13 @@ void RuleEngine::sendWaitMessage(LinkAllocationUpdateResponse *msg) {
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getDestAddr());
   pkt->setActualDestAddr(msg->getSrcAddr());
+  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getStack_of_ActiveLinkAllocationsArraySize());
   for (int i = 0; i < msg->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
     auto ruleset_id = msg->getStack_of_ActiveLinkAllocations(i);
     pkt->setStack_of_ActiveLinkAllocations(i, ruleset_id);
   }
-  send(pkt, "RouterPort$o");
+  // send(pkt, "RouterPort$o");
+  scheduleAt(simTime() + 0.000001, pkt);
 }
 
 void RuleEngine::sendWaitMessageAgain(WaitMessage *msg) {
@@ -436,11 +438,13 @@ void RuleEngine::sendWaitMessageAgain(WaitMessage *msg) {
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getDestAddr());
   pkt->setActualDestAddr(msg->getActualDestAddr());
+  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getStack_of_ActiveLinkAllocationsArraySize());
   for (int i = 0; i < msg->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
     auto ruleset_id = msg->getStack_of_ActiveLinkAllocations(i);
     pkt->setStack_of_ActiveLinkAllocations(i, ruleset_id);
   }
-  send(pkt, "RouterPort$o");
+  // send(pkt, "RouterPort$o");
+  scheduleAt(simTime() + 0.000001, pkt);
 }
 
 unsigned long RuleEngine::getRuleSetIdBySequenceNumber(int sequence_number) {
