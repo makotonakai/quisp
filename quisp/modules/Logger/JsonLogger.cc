@@ -146,7 +146,12 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
     os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
-    os << ", \"ruleset_id\": " << req->getRuleSetId();
+    os << ", \"stack_of_active_link_allocations\": [";
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getActiveLinkAllocations(i);
+    }
+    os << "]";
     os << ", \"sequence_number\": " << req->getSequenceNumber();
     return os.str();
   }
@@ -158,7 +163,12 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
     os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
-    os << ", \"ruleset_id\": " << req->getRuleSetId();
+    os << ", \"stack_of_active_link_allocations\": [";
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getActiveLinkAllocations(i);
+    }
+    os << "]";
     os << ", \"sequence_number\": " << req->getSequenceNumber();
     return os.str();
   }
@@ -170,7 +180,12 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
     os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
-    os << ", \"ruleset_id\": " << req->getRuleSetId();
+    os << ", \"stack_of_active_link_allocations\": [";
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getActiveLinkAllocations(i);
+    }
+    os << "]";
     os << ", \"sequence_number\": " << req->getSequenceNumber();
     return os.str();
   }
@@ -181,9 +196,9 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
       if (i != 0) os << ", ";
-      os << req->getStack_of_ActiveLinkAllocations(i);
+      os << req->getActiveLinkAllocations(i);
     }
     os << "]";
     return os.str();
@@ -195,9 +210,9 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
       if (i != 0) os << ", ";
-      os << req->getStack_of_ActiveLinkAllocations(i);
+      os << req->getActiveLinkAllocations(i);
     }
     os << "]";
     os << ", \"random_number\": " << req->getRandomNumber();
@@ -210,9 +225,9 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
       if (i != 0) os << ", ";
-      os << req->getStack_of_ActiveLinkAllocations(i);
+      os << req->getActiveLinkAllocations(i);
     }
     os << "]";
     return os.str();
@@ -224,9 +239,9 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
       if (i != 0) os << ", ";
-      os << req->getStack_of_ActiveLinkAllocations(i);
+      os << req->getActiveLinkAllocations(i);
     }
     os << "]";
     return os.str();
