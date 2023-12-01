@@ -98,9 +98,10 @@ TEST_F(JsonLoggerTest, UnknownPacket) {
 }
 
 TEST_F(JsonLoggerTest, LogBellPairTest) {
-  logger->logBellPairInfo("Generated", 1, quisp::modules::QNIC_E, 2, 3);
+  logger->logBellPairInfo("Generated", 1, 1, quisp::modules::QNIC_E, 2, 3);
   EXPECT_EQ(log_stream.str(),
-            "{\"simtime\": 0, \"event_type\": \"BellPairGenerated\", \"address\": \"-1\", \"partner_addr\": 1, \"qnic_type\": 0, \"qnic_index\": 2, \"qubit_index\": 3}\n");
+            "{\"simtime\": 0, \"event_type\": \"BellPairGenerated\", \"address\": \"-1\", \"sequence_number\": 1, \"partner_addr\": 1, \"qnic_type\": 0, \"qnic_index\": 2, "
+            "\"qubit_index\": 3}\n");
 }
 
 TEST_F(JsonLoggerTest, LogQubitState) {
