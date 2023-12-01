@@ -87,11 +87,11 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
-  void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg, unsigned long ruleset_id, int sequence_number);
+  void sendBarrierRequest(messages::LinkAllocationUpdateResponse *msg);
   void sendRejectBarrierRequest(messages::BarrierRequest *msg);
   void resendBarrierRequest(messages::RejectBarrierRequest *msg);
   void sendBarrierResponse(messages::BarrierRequest *msg);
-  void finallySendBarrierRequest(messages::WaitMessage *msg, unsigned long ruleset_id, int sequence_number);
+  void finallySendBarrierRequest(messages::WaitMessage *msg);
   void sendWaitMessage(messages::LinkAllocationUpdateResponse *msg);
   void sendWaitMessageAgain(messages::WaitMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
