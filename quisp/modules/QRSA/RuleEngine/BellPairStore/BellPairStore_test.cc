@@ -135,9 +135,9 @@ TEST_F(BellPairStoreTest, getRangeWithLoop) {
   EXPECT_EQ(count, 4);
 }
 
-TEST_F(BellPairStoreTest, getFirstAvailableSequenceNumberQubit) {
+TEST_F(BellPairStoreTest, getAvailableSequenceNumber) {
   store.insertEntangledQubit(1, 7, qubit1);
-  auto sequence_number = store.getFirstAvailableSequenceNumberQubit(7);
+  auto sequence_number = store.getAvailableSequenceNumber(3, 7);
   EXPECT_EQ(sequence_number, 1);
 }
 
