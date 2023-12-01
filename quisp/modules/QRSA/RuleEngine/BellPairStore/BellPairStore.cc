@@ -20,6 +20,7 @@ void BellPairStore::insertEntangledQubit(int sequence_number, QNodeAddr partner_
     _resources.emplace(key, std::multimap<int, SequenceNumberQubit>{std::make_pair(partner_addr, sequence_number_qubit)});
   } else {
     _resources[key].emplace(partner_addr, sequence_number_qubit);
+    sequence_number_is_allocated_map[sequence_number] = false;
   }
 }
 
@@ -77,10 +78,9 @@ int BellPairStore::getQnicIndexByNumberOfQnicsAndPartnerAddress(int number_of_qn
 
 int BellPairStore::getAvailableSequenceNumber(int qnic_index, QNodeAddr partner_addr) {
   int sequence_number = -1;
-  auto range = getBellPairsRange(QNIC_E, qnic_index, partner_addr);
-  for (auto it = range.first; it != range.second; it++) {
-    if (!it->second.second->isAllocated()) {
-      sequence_number = it->second.first;
+  for (const auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
+    if (is_allocated) {
+      sequence_number = _sequence_number;
       break;
     }
   }
