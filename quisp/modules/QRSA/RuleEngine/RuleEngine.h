@@ -91,7 +91,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void sendRejectBarrierRequest(messages::BarrierRequest *msg);
   void resendBarrierRequest(messages::RejectBarrierRequest *msg);
   void sendBarrierResponse(messages::BarrierRequest *msg);
-  void finallySendBarrierRequest(messages::WaitMessage *msg, unsigned long ruleset_id);
+  void finallySendBarrierRequest(messages::WaitMessage *msg, unsigned long ruleset_id, int sequence_number);
   void sendWaitMessage(messages::LinkAllocationUpdateResponse *msg);
   void sendWaitMessageAgain(messages::WaitMessage *msg);
   void sendLinkAllocationUpdateRequestForConnectionSetup(messages::InternalNeighborAddressesMessage *msg);
@@ -105,7 +105,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeRuleSetByRuleSetId(unsigned long ruleset_id);
   void executeAllRuleSets();
-  std::vector<int> getSmallestSequenceNumbers(QNodeAddr partner_addr, int number);
+  int getSmallestSequenceNumber(QNodeAddr partner_addr);
   int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(messages::BarrierRequest *msg);
   int getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(messages::BarrierResponse *msg);
   unsigned long getRuleSetIdBySequenceNumber(int sequence_number);
@@ -131,7 +131,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::unordered_map<int, std::vector<unsigned long>> node_address_active_link_allocation_map;
   std::unordered_map<int, bool> node_address_lau_sent_map;
   std::unordered_map<int, bool> node_address_lau_responded_map;
-  int sequence_number = 0;
 };
 
 Define_Module(RuleEngine);

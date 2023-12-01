@@ -166,10 +166,9 @@ void RuleEngine::handleMessage(cMessage *msg) {
     }
     if (bell_pair_exist) {
       auto ruleset_num = pkt->getStack_of_ActiveLinkAllocationsArraySize();
-      auto sequence_number_list = getSmallestSequenceNumbers(partner_addr, ruleset_num);
       for (int i = 0; i < ruleset_num; i++) {
         auto ruleset_id = pkt->getStack_of_ActiveLinkAllocations(i);
-        auto sequence_number = sequence_number_list[i];
+        auto sequence_number = getSmallestSequenceNumber(partner_addr);
         sendBarrierRequest(pkt, ruleset_id, sequence_number);
       }
     } else {
@@ -184,15 +183,15 @@ void RuleEngine::handleMessage(cMessage *msg) {
     if (existing_ruleset_id == -1) {
       sequence_number_ruleset_id_map[sequence_number] = ruleset_id;
       auto *allocated_qubit_record = bell_pair_store.allocateFirstAvailableQubitRecord(sequence_number, partner_addr);
-      auto is_allocated = allocated_qubit_record->isAllocated();
-      std::cout << "Address: " << parentAddress << " Allocated: " << is_allocated << std::endl;
+      // auto is_allocated = allocated_qubit_record->isAllocated();
+      // std::cout << "Address: " << parentAddress << " Allocated: " << is_allocated << std::endl;
       runtime->assignQubitToRuleSet(partner_addr, allocated_qubit_record);
       sendBarrierResponse(pkt);
     } else {
       sendRejectBarrierRequest(pkt);
     }
   } else if (auto *pkt = dynamic_cast<WaitMessage *>(msg)) {
-    auto partner_addr = pkt->getSrcAddr();
+    auto partner_addr = pkt->getActualDestAddr();
     auto bell_pair_exist = false;
     for (int i = 0; i < number_of_qnics; i++) {
       bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
@@ -201,9 +200,11 @@ void RuleEngine::handleMessage(cMessage *msg) {
       }
     }
     if (bell_pair_exist) {
-      for (int i = 0; i < pkt->getStack_of_ActiveLinkAllocationsArraySize(); i++) {
+      auto ruleset_num = pkt->getStack_of_ActiveLinkAllocationsArraySize();
+      for (int i = 0; i < ruleset_num; i++) {
         auto ruleset_id = pkt->getStack_of_ActiveLinkAllocations(i);
-        finallySendBarrierRequest(pkt, ruleset_id);
+        auto sequence_number = getSmallestSequenceNumber(partner_addr);
+        finallySendBarrierRequest(pkt, ruleset_id, sequence_number);
       }
     } else {
       sendWaitMessageAgain(pkt);
@@ -215,8 +216,8 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
     auto partner_addr = pkt->getSrcAddr();
     auto *allocated_qubit_record = bell_pair_store.allocateFirstAvailableQubitRecord(sequence_number, partner_addr);
-    auto is_allocated = allocated_qubit_record->isAllocated();
-    std::cout << "Address: " << parentAddress << " Allocated: " << is_allocated << std::endl;
+    // auto is_allocated = allocated_qubit_record->isAllocated();
+    // std::cout << "Address: " << parentAddress << " Allocated: " << is_allocated << std::endl;
     runtime->assignQubitToRuleSet(partner_addr, allocated_qubit_record);
     // runtime->exec();
     // if (!runtime->isQubitLocked(qubit_record)) {
@@ -283,9 +284,9 @@ void RuleEngine::handleLinkGenerationResult(CombinedBSAresults *bsa_result) {
     auto *qubit_record = qnic_store->getQubitRecord(type, qnic_index, qubit_index);
     auto iterator = emitted_indices.begin();
     std::advance(iterator, emitted_index);
+    auto sequence_number = bsa_result->getSequenceNumbers(i);
     bell_pair_store.insertEntangledQubit(sequence_number, partner_address, qubit_record);
     emitted_indices.erase(iterator);
-    sequence_number += 1;
 
     auto correction_operation = bsa_result->getCorrectionOperationList(i);
     if (correction_operation == PauliOperator::X) {
@@ -391,8 +392,7 @@ void RuleEngine::resendBarrierRequest(RejectBarrierRequest *msg) {
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
   pkt->setRuleSetId(msg->getRuleSetId());
-  auto sequence_number_list = getSmallestSequenceNumbers(msg->getSrcAddr(), 1);
-  auto sequence_number = sequence_number_list[0];
+  auto sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
   pkt->setSequenceNumber(sequence_number);
   send(pkt, "RouterPort$o");
 }
@@ -407,16 +407,13 @@ void RuleEngine::sendBarrierResponse(BarrierRequest *msg) {
   send(pkt, "RouterPort$o");
 }
 
-void RuleEngine::finallySendBarrierRequest(WaitMessage *msg, unsigned long ruleset_id) {
+void RuleEngine::finallySendBarrierRequest(WaitMessage *msg, unsigned long ruleset_id, int sequence_number) {
   BarrierRequest *pkt = new BarrierRequest("BarrierResponse");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getActualDestAddr());
   pkt->setRuleSetId(ruleset_id);
-  auto sequence_number_list = getSmallestSequenceNumbers(msg->getSrcAddr(), 1);
-  auto sequence_number = sequence_number_list[0];
   pkt->setSequenceNumber(sequence_number);
   send(pkt, "RouterPort$o");
-  sleep(1);
 }
 
 void RuleEngine::sendWaitMessage(LinkAllocationUpdateResponse *msg) {
@@ -430,7 +427,7 @@ void RuleEngine::sendWaitMessage(LinkAllocationUpdateResponse *msg) {
     pkt->setStack_of_ActiveLinkAllocations(i, ruleset_id);
   }
   // send(pkt, "RouterPort$o");
-  scheduleAt(simTime() + 0.000001, pkt);
+  scheduleAt(simTime() + 0.00001, pkt);
 }
 
 void RuleEngine::sendWaitMessageAgain(WaitMessage *msg) {
@@ -444,7 +441,7 @@ void RuleEngine::sendWaitMessageAgain(WaitMessage *msg) {
     pkt->setStack_of_ActiveLinkAllocations(i, ruleset_id);
   }
   // send(pkt, "RouterPort$o");
-  scheduleAt(simTime() + 0.000001, pkt);
+  scheduleAt(simTime() + 0.00001, pkt);
 }
 
 unsigned long RuleEngine::getRuleSetIdBySequenceNumber(int sequence_number) {
@@ -457,15 +454,13 @@ unsigned long RuleEngine::getRuleSetIdBySequenceNumber(int sequence_number) {
 
 int RuleEngine::getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(BarrierRequest *msg) {
   auto incoming_sequence_number = msg->getSequenceNumber();
-  auto sequence_number_list = getSmallestSequenceNumbers(msg->getSrcAddr(), 1);
-  auto my_sequence_number = sequence_number_list[0];
+  auto my_sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
   return std::max(incoming_sequence_number, my_sequence_number);
 }
 
 int RuleEngine::getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(BarrierResponse *msg) {
   auto incoming_sequence_number = msg->getSequenceNumber();
-  auto sequence_number_list = getSmallestSequenceNumbers(msg->getSrcAddr(), 1);
-  auto my_sequence_number = sequence_number_list[0];
+  auto my_sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
   return std::max(incoming_sequence_number, my_sequence_number);
 }
 
@@ -632,9 +627,10 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
   }
 }
 
-std::vector<int> RuleEngine::getSmallestSequenceNumbers(QNodeAddr partner_addr, int number) {
-  auto sequence_number_list = bell_pair_store.getAvailableSequenceNumbers(partner_addr, number);
-  return sequence_number_list;
+int RuleEngine::getSmallestSequenceNumber(QNodeAddr partner_addr) {
+  auto qnic_index = bell_pair_store.getQnicIndexByNumberOfQnicsAndPartnerAddress(number_of_qnics, partner_addr);
+  auto sequence_number = bell_pair_store.getAvailableSequenceNumber(partner_addr, qnic_index);
+  return sequence_number;
 }
 
 void RuleEngine::executeRuleSetByRuleSetId(unsigned long ruleset_id) {
