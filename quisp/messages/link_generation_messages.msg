@@ -34,4 +34,5 @@ packet CombinedBSAresults extends BSMTimingNotification
     int neighbor_address @getter(getNeighborAddress) @setter(setNeighborAddress);
     int list_of_succesful_photon_indices[] @appender(appendSuccessIndex) @getter(getSuccessfulPhotonIndices) @sizeGetter(getSuccessCount);
     PauliOperator list_of_correction_operations[] @appender(appendCorrectionOperation) @getter(getCorrectionOperationList) ;
+    int list_of_sequence_numbers[] @appender(appendSequenceNumber) @getter(getSequenceNumbers) @sizeGetter(getSequenceNumberCount);
 }
