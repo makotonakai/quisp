@@ -629,7 +629,7 @@ void RuleEngine::ResourceAllocation(int qnic_type, int qnic_index) {
 
 int RuleEngine::getSmallestSequenceNumber(QNodeAddr partner_addr) {
   auto qnic_index = bell_pair_store.getQnicIndexByNumberOfQnicsAndPartnerAddress(number_of_qnics, partner_addr);
-  auto sequence_number = bell_pair_store.getAvailableSequenceNumber(partner_addr, qnic_index);
+  auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumber(partner_addr, qnic_index);
   return sequence_number;
 }
 
