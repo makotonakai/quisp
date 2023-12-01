@@ -14,11 +14,9 @@ namespace quisp::messages;
 
 packet BarrierRequest extends Header
 {
-
-
     int actualSrcAddr;
     int actualDestAddr;
-    unsigned long rulesetId @setter(setRuleSetId) @getter(getRuleSetId);
+    unsigned long stack_of_ActiveLinkAllocations[];
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber);
 }
 
@@ -27,7 +25,7 @@ packet RejectBarrierRequest extends Header
 
     int actualSrcAddr;
     int actualDestAddr;
-    unsigned long rulesetId @setter(setRuleSetId) @getter(getRuleSetId);
+    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber);
 }
 
@@ -36,11 +34,11 @@ packet BarrierResponse extends Header
 
     int actualSrcAddr;
     int actualDestAddr;
-    unsigned long rulesetId @setter(setRuleSetId) @getter(getRuleSetId);
+    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber);
 }
 
 packet WaitMessage extends Header {
     int actualDestAddr;
-    unsigned long stack_of_ActiveLinkAllocations[];
+    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
 }
