@@ -79,7 +79,7 @@ int BellPairStore::getQnicIndexByNumberOfQnicsAndPartnerAddress(int number_of_qn
 int BellPairStore::getFirstAvailableSequenceNumber(int qnic_index, QNodeAddr partner_addr) {
   int sequence_number = -1;
   for (const auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
-    if (is_allocated) {
+    if (!is_allocated) {
       sequence_number = _sequence_number;
       break;
     }
@@ -104,7 +104,7 @@ bool BellPairStore::bellPairExist(QNodeAddr addr) {
 
 qrsa::IQubitRecord *BellPairStore::allocateFirstAvailableQubitRecord(int sequence_number, int addr) {
   IQubitRecord *qubit_record;
-  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
+  for (const auto &[key, partner_sequence_number_qubit_map] : _resources) {
     auto qnic_index = key.second;
     auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
     int count = 0;
@@ -121,7 +121,7 @@ qrsa::IQubitRecord *BellPairStore::allocateFirstAvailableQubitRecord(int sequenc
 
 std::string BellPairStore::toString() const {
   std::stringstream ss;
-  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
+  for (const auto &[key, partner_sequence_number_qubit_map] : _resources) {
     for (auto &[partner, sequence_number_qubit_map] : partner_sequence_number_qubit_map) {
       ss << "(type:" << key.first << ", qnic:" << key.second << ", qubit:" << sequence_number_qubit_map.second->getQubitIndex() << ")=>(partner:" << partner << "), ";
     }
