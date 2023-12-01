@@ -39,6 +39,7 @@ class BellPairStore {
 
  protected:
   std::map<ResourceKey, PartnerAddrSequenceNumberQubitMap> _resources;
+  std::map<int, bool> sequence_number_is_allocated_map;
 };
 std::ostream& operator<<(std::ostream& os, const quisp::modules::BellPairStore& store);
 }  // namespace quisp::modules
