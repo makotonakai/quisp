@@ -74,7 +74,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::map<unsigned long, unsigned long> current_ruleset_id_next_ruleset_id_map;
   std::map<unsigned long, vector<int>> ruleset_id_qnic_addresses_map;
   std::vector<int> qnode_indices;
-  std::map<int, unsigned long> sequence_number_ruleset_id_map;
 
   IHardwareMonitor *hardware_monitor;
   IRoutingDaemon *routingdaemon;
@@ -82,7 +81,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   BellPairStore bell_pair_store;
 
   void freeConsumedResource(int qnic_index, IStationaryQubit *qubit, QNIC_type qnic_type);
-  void ResourceAllocation(int qnic_type, int qnic_index);
+  void allocateBellPairs(int qnic_type, int qnic_index);
   void handleConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);

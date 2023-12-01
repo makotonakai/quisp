@@ -149,7 +149,7 @@ class RuleEngineTest : public testing::Test {
 // specifier for qnics in order to create qnic_record and qubit_record.
 static const std::vector<QNicSpec> qnic_specs = {{QNIC_E, 0, 2}, {QNIC_R, 0, 2}};
 
-TEST_F(RuleEngineTest, resourceAllocation) {
+TEST_F(RuleEngineTest, allocateBellPairs) {
   auto logger = std::make_unique<DisabledLogger>();
   auto* qubit_record0 = new QubitRecord(QNIC_E, 3, 0, logger.get());
   auto* qubit_record1 = new QubitRecord(QNIC_E, 3, 1, logger.get());
@@ -169,7 +169,7 @@ TEST_F(RuleEngineTest, resourceAllocation) {
   auto runtime = quisp::runtime::Runtime{};
   rule_engine->runtimes.acceptRuleSet(rs);
 
-  rule_engine->ResourceAllocation(QNIC_E, 3);
+  rule_engine->allocateBellPairs(QNIC_E, 3);
   EXPECT_TRUE(qubit_record1->isAllocated());
 
   // resource allocation assigns a corresponding qubit to action's resource
