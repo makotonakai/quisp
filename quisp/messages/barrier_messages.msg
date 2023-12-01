@@ -16,7 +16,7 @@ packet BarrierRequest extends Header
 {
     int actualSrcAddr;
     int actualDestAddr;
-    unsigned long stack_of_ActiveLinkAllocations[];
+    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber);
 }
 
