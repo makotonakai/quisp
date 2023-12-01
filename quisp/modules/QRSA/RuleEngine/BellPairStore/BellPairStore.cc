@@ -76,7 +76,7 @@ int BellPairStore::getQnicIndexByNumberOfQnicsAndPartnerAddress(int number_of_qn
   return qnic_index;
 }
 
-int BellPairStore::getAvailableSequenceNumber(int qnic_index, QNodeAddr partner_addr) {
+int BellPairStore::getFirstAvailableSequenceNumber(int qnic_index, QNodeAddr partner_addr) {
   int sequence_number = -1;
   for (const auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
     if (is_allocated) {
