@@ -328,7 +328,8 @@ void ConnectionManager::respondToRequest(ConnectionSetupRequest *req) {
   ruleset_gen::RuleSetGenerator ruleset_gen{my_address};
   auto rulesets = ruleset_gen.generateRuleSets(req, ruleset_id);
 
-  ruleset_id_node_addresses_along_path_map[ruleset_id] = generateNodeAddressesAlongPath(rulesets);
+  auto all_node_addresses_along_path = generateNodeAddressesAlongPath(rulesets);
+  ruleset_id_node_addresses_along_path_map[ruleset_id] = all_node_addresses_along_path;
   auto initiator_address = ruleset_id_node_addresses_along_path_map[ruleset_id][0];
 
   // distribute rulesets to each qnode in the path
