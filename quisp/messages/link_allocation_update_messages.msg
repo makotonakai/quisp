@@ -8,7 +8,7 @@ packet LinkAllocationUpdateMessage extends Header {
   int random_number @setter(setRandomNumber) @getter(getRandomNumber);
 }
 
-packet InternalNeighborAddressesMessage extends Header {
+packet LinkAllocationUpdateNotifier extends Header {
   unsigned long ruleset_id @setter(setRuleSetId) @getter(getRuleSetId);
   int stack_of_NeighboringQNodeIndices[];
 }

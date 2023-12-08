@@ -125,9 +125,9 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
-  if (auto* req = dynamic_cast<const quisp::messages::InternalNeighborAddressesMessage*>(msg)) {
+  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateNotifier*>(msg)) {
     std::stringstream os;
-    os << "\"msg_type\": \"InternalNeighborAddressesMessage\"";
+    os << "\"msg_type\": \"LinkAllocationUpdateNotifier\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_qnode_indices\": [";

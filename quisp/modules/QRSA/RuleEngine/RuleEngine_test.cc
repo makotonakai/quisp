@@ -340,7 +340,7 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   sim->setContext(rule_engine);
   rule_engine->callInitialize();
 
-  auto* msg = new InternalNeighborAddressesMessage();
+  auto* msg = new LinkAllocationUpdateNotifier();
   msg->setSrcAddr(5);
   msg->setDestAddr(2);
   msg->setRuleSetId(111);

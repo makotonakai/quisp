@@ -138,7 +138,7 @@ void RuleEngine::handleMessage(cMessage *msg) {
     for (auto index = 0; index < pkt->getNode_addresses_along_pathArraySize(); index++) {
       ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(pkt->getNode_addresses_along_path(index));
     }
-  } else if (auto *pkt = dynamic_cast<InternalNeighborAddressesMessage *>(msg)) {
+  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
     auto src_addr = pkt->getSrcAddr();
     sendLinkAllocationUpdateMessage(pkt);
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
@@ -449,7 +449,7 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalCo
   }
 }
 
-void RuleEngine::sendLinkAllocationUpdateMessage(InternalNeighborAddressesMessage *msg) {
+void RuleEngine::sendLinkAllocationUpdateMessage(LinkAllocationUpdateNotifier *msg) {
   std::vector<int> neighbor_addresses;
   auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
   for (auto i = 0; i < num_neighbors; i++) {

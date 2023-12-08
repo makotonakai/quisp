@@ -445,7 +445,7 @@ void ConnectionManager::storeNeightborsInfo(ConnectionSetupResponse *res) {
   generateListOfNeighboringNodes(res);
   auto ruleset_id = res->getRuleSet_id();
   auto neighboring_node_addresses = ruleset_id_neighboring_node_addresses_map[ruleset_id];
-  InternalNeighborAddressesMessage *pkt = new InternalNeighborAddressesMessage("InternalNeighborAddressesMessage");
+  LinkAllocationUpdateNotifier *pkt = new LinkAllocationUpdateNotifier("LinkAllocationUpdateNotifier");
   pkt->setSrcAddr(my_address);
   pkt->setDestAddr(my_address);
   pkt->setRuleSetId(ruleset_id);

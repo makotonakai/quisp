@@ -93,7 +93,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void finallySendBarrierRequest(messages::WaitMessage *msg);
   void sendWaitMessage(messages::LinkAllocationUpdateMessage *msg);
   void sendWaitMessageAgain(messages::WaitMessage *msg);
-  void sendLinkAllocationUpdateMessage(messages::InternalNeighborAddressesMessage *msg);
+  void sendLinkAllocationUpdateMessage(messages::LinkAllocationUpdateNotifier *msg);
   void sendLinkAllocationUpdateMessageForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   void sendLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
   bool bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);

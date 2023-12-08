@@ -112,7 +112,7 @@ void Router::handleMessage(cMessage *msg) {
     bubble("Internal Connection Teardown packet received");
     send(pk, "rePort$o");
     return;
-  } else if (dest_addr == my_address && dynamic_cast<InternalNeighborAddressesMessage *>(msg)) {
+  } else if (dest_addr == my_address && dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
     bubble("Internal Neighbor Addresses packet received");
     send(pk, "rePort$o");
     return;
