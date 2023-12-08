@@ -112,9 +112,9 @@ TEST_F(RuntimeManagerTest, Exec) {
     EXPECT_EQ(rs1.loadVal(MemoryKey{"test"}).intValue(), 123);
     EXPECT_EQ(rs2.loadVal(MemoryKey{"test"}).intValue(), 123);
     EXPECT_EQ(rs3.loadVal(MemoryKey{"test"}).intValue(), 123);
-    EXPECT_FALSE(rs1.terminated);
-    EXPECT_FALSE(rs2.terminated);
-    EXPECT_FALSE(rs3.terminated);
+    EXPECT_FALSE(rs1.is_terminated);
+    EXPECT_FALSE(rs2.is_terminated);
+    EXPECT_FALSE(rs3.is_terminated);
   }
 }
 
@@ -141,8 +141,8 @@ TEST_F(RuntimeManagerTest, ExecAndTerminated) {
     auto& rs3 = runtimes->at(1);
     EXPECT_EQ(rs1.loadVal(MemoryKey{"test"}).intValue(), 123);
     EXPECT_EQ(rs3.loadVal(MemoryKey{"test"}).intValue(), 123);
-    EXPECT_FALSE(rs1.terminated);
-    EXPECT_FALSE(rs3.terminated);
+    EXPECT_FALSE(rs1.is_terminated);
+    EXPECT_FALSE(rs3.is_terminated);
   }
 }
 
@@ -162,10 +162,10 @@ TEST_F(RuntimeManagerTest, StopById) {
   runtimes->acceptRuleSet(rs3);
   EXPECT_EQ(runtimes->size(), 3);
   runtimes->stopById(rs1.id);
-  EXPECT_TRUE(runtimes->findById(rs1.id)->terminated);
+  EXPECT_TRUE(runtimes->findById(rs1.id)->is_terminated);
   runtimes->stopById(rs2.id);
-  EXPECT_TRUE(runtimes->findById(rs2.id)->terminated);
+  EXPECT_TRUE(runtimes->findById(rs2.id)->is_terminated);
   runtimes->stopById(rs3.id);
-  EXPECT_TRUE(runtimes->findById(rs3.id)->terminated);
+  EXPECT_TRUE(runtimes->findById(rs3.id)->is_terminated);
 }
 }  // namespace

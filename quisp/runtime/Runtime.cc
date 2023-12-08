@@ -21,7 +21,7 @@ Runtime::Runtime(const Runtime& rt) : Runtime() {
   memory = rt.memory;
   ruleset = rt.ruleset;
   partners = rt.partners;
-  terminated = rt.terminated;
+  is_terminated = rt.is_terminated;
   debugging = rt.debugging;
 }
 
@@ -42,14 +42,14 @@ Runtime& Runtime::operator=(Runtime&& rt) {
   memory = std::move(rt.memory);
   ruleset = std::move(rt.ruleset);
   partners = std::move(rt.partners);
-  terminated = rt.terminated;
+  is_terminated = rt.is_terminated;
   debugging = rt.debugging;
   return *this;
 }
 Runtime::~Runtime() {}
 
 void Runtime::exec() {
-  if (terminated) return;
+  if (is_terminated) return;
   cleanup();
   debugging = ruleset.debugging;
   if (debugging) {
@@ -73,7 +73,7 @@ void Runtime::exec() {
       execProgram(rule.action);
       execProgram(ruleset.termination_condition);
       if (return_code == ReturnCode::RS_TERMINATED) {
-        terminated = true;
+        is_terminated = true;
         return;
       }
     }

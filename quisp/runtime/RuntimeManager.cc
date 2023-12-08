@@ -37,7 +37,7 @@ std::vector<RuleSet> RuntimeManager::exec() {
   std::vector<QNodeAddr> partners_tmp;
   for (auto it = runtimes.begin(); it != runtimes.end();) {
     it->exec();
-    if (it->terminated) {
+    if (it->is_terminated) {
       auto partners = it->partners;
       for (auto partner : partners) {
         partners_tmp.push_back(partner);
@@ -56,7 +56,7 @@ std::vector<RuleSet> RuntimeManager::exec() {
 
 void RuntimeManager::stopById(unsigned long long ruleset_id) {
   auto it = findById(ruleset_id);
-  it->terminated = true;
+  it->is_terminated = true;
 }
 std::vector<QNodeAddr> RuntimeManager::findPartnersById(unsigned long long ruleset_id) {
   for (auto &[k, v] : ruleset_id_partners_map) {

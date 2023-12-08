@@ -464,12 +464,18 @@ class Runtime {
   bool should_exit = false;
 
   /**
+   * @brief This flag is enabled when the RuleSet is a part of the active link allocation.
+   *
+   */
+  bool is_active = false;
+
+  /**
    * @brief This flag is enabled when the RuleSet finishes its tasks.
    *
    * If this flag is true, the Runtime stops the Program execution,
    * and then the RuleEngine deletes the RuleSet and the Runtime.
    */
-  bool terminated = false;
+  bool is_terminated = false;
 
   /**
    * @brief The GET_QUBIT instruction sets this flag. if it's true, the GET_QUBIT
