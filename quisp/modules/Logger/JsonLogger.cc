@@ -215,6 +215,12 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
       os << req->getActiveLinkAllocations(i);
     }
     os << "]";
+    os << ", \"stack_of_next_link_allocations\": [";
+    for (int i = 0; i < req->getNextLinkAllocationCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getNextLinkAllocations(i);
+    }
+    os << "]";
     os << ", \"random_number\": " << req->getRandomNumber();
     return os.str();
   }
