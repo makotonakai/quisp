@@ -277,7 +277,7 @@ TEST_F(RuleEngineTest, haveAllActiveLinkAllocations) {
   ruleset.owner_addr = 1;
   rule_engine->runtimes.acceptRuleSet(ruleset);
 
-  auto pkt = new LinkAllocationUpdateRequest();
+  auto pkt = new LinkAllocationUpdateMessage();
   pkt->setStack_of_ActiveLinkAllocationsArraySize(2);
   pkt->setStack_of_ActiveLinkAllocations(0, 1);
   pkt->setStack_of_ActiveLinkAllocations(0, 2);
@@ -331,7 +331,7 @@ TEST_F(RuleEngineTest, getRuleSetIdBySequenceNumber) {
   EXPECT_EQ(ruleset_id2, -1);
 }
 
-TEST_F(RuleEngineTest, sendLinkAllocationUpdateRequestForConnectionSetup) {
+TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -347,16 +347,16 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateRequestForConnectionSetup) {
   msg->setStack_of_NeighboringQNodeIndicesArraySize(1);
   msg->setStack_of_NeighboringQNodeIndices(0, 1);
 
-  rule_engine->sendLinkAllocationUpdateRequestForConnectionSetup(msg);
+  rule_engine->sendLinkAllocationUpdateMessage(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 
-  auto pkt = dynamic_cast<LinkAllocationUpdateRequest*>(gate->messages[0]);
+  auto pkt = dynamic_cast<LinkAllocationUpdateMessage*>(gate->messages[0]);
   EXPECT_EQ(pkt->getSrcAddr(), 5);
   EXPECT_EQ(pkt->getDestAddr(), 1);
 }
 
-TEST_F(RuleEngineTest, sendLinkAllocationUpdateResponse) {
+TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   auto* sim = prepareSimulation();
   auto* routing_daemon = new MockRoutingDaemon();
   auto* hardware_monitor = new MockHardwareMonitor();
@@ -365,15 +365,15 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateResponse) {
   sim->setContext(rule_engine);
   rule_engine->callInitialize();
 
-  auto* msg = new LinkAllocationUpdateRequest();
+  auto* msg = new LinkAllocationUpdateMessage();
   msg->setSrcAddr(1);
   msg->setDestAddr(2);
 
-  rule_engine->sendLinkAllocationUpdateResponse(msg);
+  rule_engine->sendLinkAllocationUpdateMessage(msg);
   auto gate = rule_engine->toRouterGate;
   EXPECT_EQ(gate->messages.size(), 1);
 
-  auto pkt = dynamic_cast<LinkAllocationUpdateResponse*>(gate->messages[0]);
+  auto pkt = dynamic_cast<LinkAllocationUpdateMessage*>(gate->messages[0]);
   EXPECT_EQ(pkt->getSrcAddr(), 2);
   EXPECT_EQ(pkt->getDestAddr(), 1);
 }

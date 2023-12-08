@@ -143,39 +143,16 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto already_sent = node_address_lau_sent_map[src_addr];
     auto already_responded = node_address_lau_responded_map[src_addr];
     if (!already_sent && !already_responded) {
-      sendLinkAllocationUpdateRequestForConnectionSetup(pkt);
+      sendLinkAllocationUpdateMessage(pkt);
     }
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
     handleConnectionTeardownMessage(pkt);
-  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateRequest *>(msg)) {
-    if (haveAllActiveLinkAllocations(pkt)) {
-      sendLinkAllocationUpdateResponse(pkt);
-    } else {
-      sendRejectLinkAllocationUpdateRequest(pkt);
-    }
-  } else if (auto *pkt = dynamic_cast<RejectLinkAllocationUpdateRequest *>(msg)) {
-    resendLinkAllocationUpdateRequest(pkt);
-  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateResponse *>(msg)) {
-    auto partner_addr = pkt->getSrcAddr();
-    auto bell_pair_exist = false;
-    for (int i = 0; i < number_of_qnics; i++) {
-      bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
-      if (bell_pair_exist) {
-        break;
-      }
-    }
-    auto qnic_index = bell_pair_store.getQnicIndexByNumberOfQnicsAndPartnerAddress(number_of_qnics, partner_addr);
-    auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumber(partner_addr, qnic_index);
-    if (bell_pair_exist && sequence_number != -1) {
-      sendBarrierRequest(pkt);
-    } else {
-      sendWaitMessage(pkt);
-    }
+  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateMessage *>(msg)) {
   } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
     auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(pkt);
     auto partner_addr = pkt->getSrcAddr();
     sendBarrierResponse(pkt);
-    allocateBellPairs(int qnic_type, int qnic_index);
+    // allocateBellPairs(qnic_type, qnic_index);
   } else if (auto *pkt = dynamic_cast<WaitMessage *>(msg)) {
     auto partner_addr = pkt->getActualDestAddr();
     auto bell_pair_exist = false;
@@ -195,7 +172,7 @@ void RuleEngine::handleMessage(cMessage *msg) {
   } else if (auto *pkt = dynamic_cast<BarrierResponse *>(msg)) {
     auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
     auto partner_addr = pkt->getSrcAddr();
-    allocateBellPairs(int qnic_type, int qnic_index);
+    // allocateBellPairs(qnic_type, qnic_index);
     // runtime->assignQubitToRuleSet(partner_addr, allocated_qubit_record);
     // runtime->exec();
     // if (!runtime->isQubitLocked(qubit_record)) {
@@ -346,7 +323,7 @@ bool RuleEngine::bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeA
   return bell_pair_exist;
 }
 
-void RuleEngine::sendBarrierRequest(LinkAllocationUpdateResponse *msg) {
+void RuleEngine::sendBarrierRequest(LinkAllocationUpdateMessage *msg) {
   BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getSrcAddr());
@@ -407,7 +384,7 @@ void RuleEngine::finallySendBarrierRequest(WaitMessage *msg) {
   send(pkt, "RouterPort$o");
 }
 
-void RuleEngine::sendWaitMessage(LinkAllocationUpdateResponse *msg) {
+void RuleEngine::sendWaitMessage(LinkAllocationUpdateMessage *msg) {
   WaitMessage *pkt = new WaitMessage("WaitMessage");
   pkt->setSrcAddr(msg->getDestAddr());
   pkt->setDestAddr(msg->getDestAddr());
@@ -447,9 +424,9 @@ int RuleEngine::getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(Barrier
   return std::max(incoming_sequence_number, my_sequence_number);
 }
 
-void RuleEngine::sendLinkAllocationUpdateRequestForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
+void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
   if (msg->getLAU_destAddr_left() != -1) {
-    LinkAllocationUpdateRequest *pkt1 = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
+    LinkAllocationUpdateMessage *pkt1 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
     pkt1->setSrcAddr(msg->getDestAddr());
     pkt1->setDestAddr(msg->getLAU_destAddr_left());
     pkt1->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
@@ -462,7 +439,7 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionTeardown(InternalCo
     send(pkt1, "RouterPort$o");
   }
   if (msg->getLAU_destAddr_right() != -1) {
-    LinkAllocationUpdateRequest *pkt2 = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
+    LinkAllocationUpdateMessage *pkt2 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
     pkt2->setSrcAddr(msg->getDestAddr());
     pkt2->setDestAddr(msg->getLAU_destAddr_left());
     pkt2->setStack_of_ActiveLinkAllocationsArraySize(runtimes.size());
@@ -476,7 +453,7 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionTeardown(InternalCo
   }
 }
 
-void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeighborAddressesMessage *msg) {
+void RuleEngine::sendLinkAllocationUpdateMessage(InternalNeighborAddressesMessage *msg) {
   std::vector<int> neighbor_addresses;
   auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
   for (auto i = 0; i < num_neighbors; i++) {
@@ -490,103 +467,17 @@ void RuleEngine::sendLinkAllocationUpdateRequestForConnectionSetup(InternalNeigh
   }
 
   for (auto neighbor_address : neighbor_addresses) {
-    auto already_sent = node_address_lau_sent_map[neighbor_address];
-    if (already_sent) {
-      break;
-    }
-    LinkAllocationUpdateRequest *pkt = new LinkAllocationUpdateRequest("LinkAllocationUpdateRequest");
+    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
     pkt->setSrcAddr(parentAddress);
     pkt->setDestAddr(neighbor_address);
-    pkt->setStack_of_ActiveLinkAllocationsArraySize(node_address_active_link_allocation_map[neighbor_address].size());
-    for (auto i = 0; i < node_address_active_link_allocation_map[neighbor_address].size(); i++) {
-      pkt->setStack_of_ActiveLinkAllocations(i, node_address_active_link_allocation_map[neighbor_address].at(i));
+    auto active_link_policy = node_address_active_link_allocation_map[neighbor_address];
+    pkt->setStack_of_ActiveLinkAllocationsArraySize(active_link_policy.size());
+    for (auto i = 0; i < active_link_policy.size(); i++) {
+      pkt->setStack_of_ActiveLinkAllocations(i, active_link_policy.at(i));
     }
     pkt->setRandomNumber(rand());
     send(pkt, "RouterPort$o");
-
-    node_address_lau_sent_map[neighbor_address] = true;
   }
-}
-
-bool RuleEngine::activeLinkAllocationDoesNotExist(std::vector<unsigned long> active_link_allocations, unsigned long active_link_allocation) {
-  auto exist = std::find(active_link_allocations.begin(), active_link_allocations.end(), active_link_allocation);
-  return exist == active_link_allocations.end();
-}
-
-bool RuleEngine::haveAllActiveLinkAllocations(LinkAllocationUpdateRequest *msg) {
-  std::vector<unsigned long> active_link_allocations;
-  for (auto runtime : runtimes) {
-    active_link_allocations.push_back(runtime.ruleset.id);
-  }
-
-  auto active_link_allocations_size = msg->getActiveLinkAllocationCount();
-  for (auto i = 0; i < active_link_allocations_size; i++) {
-    auto active_link_allocation = msg->getActiveLinkAllocations(i);
-    if (activeLinkAllocationDoesNotExist(active_link_allocations, active_link_allocation)) {
-      return false;
-    }
-  }
-  return true;
-}
-
-void RuleEngine::sendRejectLinkAllocationUpdateRequest(LinkAllocationUpdateRequest *msg) {
-  auto src_addr = msg->getSrcAddr();
-  node_address_lau_responded_map[src_addr] = true;
-
-  RejectLinkAllocationUpdateRequest *pkt = new RejectLinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (auto i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    pkt->setStack_of_ActiveLinkAllocations(i, msg->getActiveLinkAllocations(i));
-  }
-  send(pkt, "RouterPort$o");
-}
-
-void RuleEngine::resendLinkAllocationUpdateRequest(RejectLinkAllocationUpdateRequest *msg) {
-  LinkAllocationUpdateRequest *pkt = new LinkAllocationUpdateRequest("RejectLinkAllocationUpdateRequest");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (auto i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    pkt->setStack_of_ActiveLinkAllocations(i, msg->getActiveLinkAllocations(i));
-  }
-  send(pkt, "RouterPort$o");
-}
-
-void RuleEngine::sendLinkAllocationUpdateResponse(LinkAllocationUpdateRequest *msg) {
-  auto src_addr = msg->getSrcAddr();
-  auto already_responded = node_address_lau_responded_map[src_addr];
-  if (already_responded) {
-    node_address_lau_responded_map[src_addr] = false;
-    return;
-  }
-
-  auto random_number_src = msg->getRandomNumber();
-  auto random_number_dest = rand();
-  vector<unsigned long> runtimes_tmp;
-
-  if (random_number_src > random_number_dest) {
-    auto size_of_active_allocations_src = msg->getActiveLinkAllocationCount();
-    for (auto index = 0; index < size_of_active_allocations_src; index++) {
-      runtimes_tmp.push_back(msg->getActiveLinkAllocations(index));
-    }
-  } else if (random_number_src < random_number_dest) {
-    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
-      runtimes_tmp.push_back(it->ruleset.id);
-    }
-  }
-
-  LinkAllocationUpdateResponse *pkt = new LinkAllocationUpdateResponse("LinkAllocationUpdateResponse");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(runtimes_tmp.size());
-  for (auto index = 0; index < runtimes_tmp.size(); index++) {
-    pkt->setStack_of_ActiveLinkAllocations(index, runtimes_tmp.at(index));
-  }
-  send(pkt, "RouterPort$o");
-
-  node_address_lau_responded_map[src_addr] = true;
 }
 
 // Invoked whenever a new resource (entangled with neighbor) has been created.
