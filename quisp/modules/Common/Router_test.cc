@@ -211,22 +211,22 @@ TEST_F(RouterTest, handleWaitMessage) {
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
-TEST_F(RouterTest, handleLinkAllocationUpdateRequest) {
-  auto msg = new LinkAllocationUpdateRequest;
+TEST_F(RouterTest, handleLinkAllocationUpdateMessage) {
+  auto msg = new LinkAllocationUpdateMessage;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
-TEST_F(RouterTest, handleRejectLinkAllocationUpdateRequest) {
-  auto msg = new RejectLinkAllocationUpdateRequest;
+TEST_F(RouterTest, handleRejectLinkAllocationUpdateMessage) {
+  auto msg = new RejectLinkAllocationUpdateMessage;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
-TEST_F(RouterTest, handleLinkAllocationUpdateResponse) {
-  auto msg = new LinkAllocationUpdateResponse;
+TEST_F(RouterTest, handleLinkAllocationUpdateMessage) {
+  auto msg = new LinkAllocationUpdateMessage;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);

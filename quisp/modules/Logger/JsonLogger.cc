@@ -204,9 +204,9 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
-  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateRequest*>(msg)) {
+  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateMessage*>(msg)) {
     std::stringstream os;
-    os << "\"msg_type\": \"LinkAllocationUpdateRequest\"";
+    os << "\"msg_type\": \"LinkAllocationUpdateMessage\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
     os << ", \"stack_of_active_link_allocations\": [";
@@ -216,34 +216,6 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     }
     os << "]";
     os << ", \"random_number\": " << req->getRandomNumber();
-    return os.str();
-  }
-
-  if (auto* req = dynamic_cast<const quisp::messages::RejectLinkAllocationUpdateRequest*>(msg)) {
-    std::stringstream os;
-    os << "\"msg_type\": \"RejectLinkAllocationUpdateRequest\"";
-    os << ", \"dest_addr\": " << req->getDestAddr();
-    os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
-      if (i != 0) os << ", ";
-      os << req->getActiveLinkAllocations(i);
-    }
-    os << "]";
-    return os.str();
-  }
-
-  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateResponse*>(msg)) {
-    std::stringstream os;
-    os << "\"msg_type\": \"LinkAllocationUpdateResponse\"";
-    os << ", \"dest_addr\": " << req->getDestAddr();
-    os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
-      if (i != 0) os << ", ";
-      os << req->getActiveLinkAllocations(i);
-    }
-    os << "]";
     return os.str();
   }
 
