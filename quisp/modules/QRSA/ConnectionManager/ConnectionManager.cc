@@ -122,7 +122,7 @@ void ConnectionManager::handleMessage(cMessage *msg) {
       storeRuleSet(resp);
     }
 
-    storeNeightborsInfo(resp);
+    NotifyLinkAllocationUpdate(resp);
     delete msg;
     return;
   }
@@ -441,7 +441,7 @@ void ConnectionManager::generateListOfNeighboringNodes(ConnectionSetupResponse *
   }
 }
 
-void ConnectionManager::storeNeightborsInfo(ConnectionSetupResponse *res) {
+void ConnectionManager::NotifyLinkAllocationUpdate(ConnectionSetupResponse *res) {
   generateListOfNeighboringNodes(res);
   auto ruleset_id = res->getRuleSet_id();
   auto neighboring_node_addresses = ruleset_id_neighboring_node_addresses_map[ruleset_id];
