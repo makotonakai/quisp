@@ -76,7 +76,7 @@ int BellPairStore::getQnicIndexByNumberOfQnicsAndPartnerAddress(int number_of_qn
   return qnic_index;
 }
 
-int BellPairStore::getFirstAvailableSequenceNumber(int qnic_index, QNodeAddr partner_addr) {
+int BellPairStore::getFirstAvailableSequenceNumber() {
   int sequence_number = -1;
   for (const auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
     if (!is_allocated) {
@@ -87,19 +87,16 @@ int BellPairStore::getFirstAvailableSequenceNumber(int qnic_index, QNodeAddr par
   return sequence_number;
 }
 
-bool BellPairStore::bellPairExist(QNodeAddr addr) {
-  for (auto &[key, partner_sequence_number_qubit_map] : _resources) {
-    auto qnic_index = key.second;
-    auto range = getBellPairsRange(QNIC_E, qnic_index, addr);
-    int count = 0;
-    for (auto it = range.first; it != range.second; it++) {
-      count++;
-    }
-    if (count != 0) {
-      return true;
-    }
+bool BellPairStore::bellPairExist() {
+  std::vector<int> keys;
+  for (auto it = sequence_number_is_allocated_map.begin(); it != sequence_number_is_allocated_map.end(); ++it) {
+    keys.push_back(it->first);
   }
-  return false;
+  if (keys.size() != 0) {
+    return true;
+  } else {
+    return false;
+  }
 }
 
 qrsa::IQubitRecord *BellPairStore::allocateFirstAvailableQubitRecord(int sequence_number, int addr) {
