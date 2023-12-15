@@ -116,20 +116,8 @@ void Router::handleMessage(cMessage *msg) {
     bubble("Internal Neighbor Addresses packet received");
     send(pk, "rePort$o");
     return;
-  } else if (dest_addr == my_address && dynamic_cast<BarrierRequest *>(msg)) {
-    bubble("Barrier Request packet received");
-    send(pk, "rePort$o");
-    return;
-  } else if (dest_addr == my_address && dynamic_cast<RejectBarrierRequest *>(msg)) {
-    bubble("Reject Barrier Request packet received");
-    send(pk, "rePort$o");
-    return;
-  } else if (dest_addr == my_address && dynamic_cast<BarrierResponse *>(msg)) {
-    bubble("Barrier Response packet received");
-    send(pk, "rePort$o");
-    return;
-  } else if (dest_addr == my_address && dynamic_cast<WaitMessage *>(msg)) {
-    bubble("Wait Message packet received");
+  } else if (dest_addr == my_address && dynamic_cast<BarrierMessage *>(msg)) {
+    bubble("Barrier Message packet received");
     send(pk, "rePort$o");
     return;
   } else if (dest_addr == my_address && dynamic_cast<LinkAllocationUpdateMessage *>(msg)) {
