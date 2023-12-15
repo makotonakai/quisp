@@ -183,22 +183,8 @@ TEST_F(RouterTest, handleInternalConnectionTeardownMessage) {
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
-TEST_F(RouterTest, handleBarrierRequest) {
-  auto msg = new BarrierRequest;
-  msg->setDestAddr(10);
-  router->handleMessage(msg);
-  ASSERT_EQ(router->rePort->messages.size(), 1);
-}
-
-TEST_F(RouterTest, handleRejectBarrierRequest) {
-  auto msg = new RejectBarrierRequest;
-  msg->setDestAddr(10);
-  router->handleMessage(msg);
-  ASSERT_EQ(router->rePort->messages.size(), 1);
-}
-
-TEST_F(RouterTest, handleBarrierResponse) {
-  auto msg = new BarrierResponse;
+TEST_F(RouterTest, handleBarrierMessage) {
+  auto msg = new BarrierMessage;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);
@@ -206,20 +192,6 @@ TEST_F(RouterTest, handleBarrierResponse) {
 
 TEST_F(RouterTest, handleWaitMessage) {
   auto msg = new WaitMessage;
-  msg->setDestAddr(10);
-  router->handleMessage(msg);
-  ASSERT_EQ(router->rePort->messages.size(), 1);
-}
-
-TEST_F(RouterTest, handleLinkAllocationUpdateMessage) {
-  auto msg = new LinkAllocationUpdateMessage;
-  msg->setDestAddr(10);
-  router->handleMessage(msg);
-  ASSERT_EQ(router->rePort->messages.size(), 1);
-}
-
-TEST_F(RouterTest, handleRejectLinkAllocationUpdateMessage) {
-  auto msg = new RejectLinkAllocationUpdateMessage;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);

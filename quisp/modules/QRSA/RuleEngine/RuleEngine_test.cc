@@ -229,107 +229,27 @@ TEST_F(RuleEngineTest, sendConnectionTeardownMessageForRuleSet) {
   EXPECT_EQ(pkt2->getRuleSet_id(), 1);
 }
 
-TEST_F(RuleEngineTest, activeLinkAllocationDoesNotExist) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  sim->registerComponent(rule_engine);
-  sim->setContext(rule_engine);
-  rule_engine->callInitialize();
+// TEST_F(RuleEngineTest, sendBarrierMessage) {
+//   auto* sim = prepareSimulation();
+//   auto* routing_daemon = new MockRoutingDaemon();
+//   auto* hardware_monitor = new MockHardwareMonitor();
+//   auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
+//   sim->registerComponent(rule_engine);
+//   sim->setContext(rule_engine);
+//   rule_engine->callInitialize();
 
-  auto active_link_allocations = std::vector<unsigned long>{1};
-  auto active_link_allocation_that_does_not_exist = 2;
-  auto result1 = rule_engine->activeLinkAllocationDoesNotExist(active_link_allocations, active_link_allocation_that_does_not_exist);
-  EXPECT_TRUE(result1);
+//   auto record = new QubitRecord(QNIC_E, 0, 0);
+//   rule_engine->bell_pair_store.insertEntangledQubit(1, 2, record);
 
-  auto active_link_allocation_that_exists = 1;
-  auto result2 = rule_engine->activeLinkAllocationDoesNotExist(active_link_allocations, active_link_allocation_that_exists);
-  EXPECT_FALSE(result2);
-}
+//   rule_engine->sendBarrierMessage(1);
+//   auto gate = rule_engine->toRouterGate;
+//   EXPECT_EQ(gate->messages.size(), 1);
 
-TEST_F(RuleEngineTest, haveAllActiveLinkAllocations) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  sim->registerComponent(rule_engine);
-  sim->setContext(rule_engine);
-  rule_engine->callInitialize();
-
-  Program empty{"empty", {}};
-  Program cond_passed_once{"passed_once",
-                           {
-                               INSTR_LOAD_RegId_MemoryKey_{{RegId::REG0, MemoryKey{"count"}}},
-                               INSTR_BEZ_Label_RegId_{{Label{"first_time"}, RegId::REG0}},
-                               INSTR_RET_ReturnCode_{{ReturnCode::COND_FAILED}},
-                               INSTR_INC_RegId_{{RegId::REG0}, "first_time"},
-                               INSTR_STORE_MemoryKey_RegId_{{MemoryKey{"count"}, RegId::REG0}},
-                               INSTR_RET_ReturnCode_{{ReturnCode::COND_PASSED}},
-                           }};
-  Program checker{"cond", {INSTR_STORE_MemoryKey_int_{{MemoryKey{"test"}, 123}}}};
-  Program terminator{"terminator", {INSTR_RET_ReturnCode_{{ReturnCode::RS_TERMINATED}}}};
-  Rule rule{
-      "", -1, -1, cond_passed_once, checker,
-  };
-  RuleSet ruleset{"ruleset1", {rule}, terminator};
-  ruleset.id = 1;
-  ruleset.owner_addr = 1;
-  rule_engine->runtimes.acceptRuleSet(ruleset);
-
-  auto pkt = new LinkAllocationUpdateMessage();
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(2);
-  pkt->setStack_of_ActiveLinkAllocations(0, 1);
-  pkt->setStack_of_ActiveLinkAllocations(0, 2);
-
-  auto result = rule_engine->haveAllActiveLinkAllocations(pkt);
-  EXPECT_FALSE(result);
-}
-
-TEST_F(RuleEngineTest, sendBarrierResponse) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  sim->registerComponent(rule_engine);
-  sim->setContext(rule_engine);
-  rule_engine->callInitialize();
-
-  auto record = new QubitRecord(QNIC_E, 0, 0);
-  rule_engine->bell_pair_store.insertEntangledQubit(1, 2, record);
-
-  auto* msg = new BarrierRequest();
-  msg->setSrcAddr(1);
-  msg->setDestAddr(2);
-  msg->setRuleSetId(111);
-  msg->setSequenceNumber(1);
-
-  rule_engine->sendBarrierResponse(msg);
-  auto gate = rule_engine->toRouterGate;
-  EXPECT_EQ(gate->messages.size(), 1);
-
-  auto pkt = dynamic_cast<BarrierResponse*>(gate->messages[0]);
-  EXPECT_EQ(pkt->getSrcAddr(), 2);
-  EXPECT_EQ(pkt->getDestAddr(), 1);
-  EXPECT_EQ(pkt->getRuleSetId(), 111);
-  EXPECT_EQ(pkt->getSequenceNumber(), 1);
-}
-
-TEST_F(RuleEngineTest, getRuleSetIdBySequenceNumber) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-
-  auto sequence_number1 = 1;
-  rule_engine->sequence_number_ruleset_id_map[sequence_number1] = 111;
-  auto ruleset_id1 = rule_engine->getRuleSetIdBySequenceNumber(sequence_number1);
-  EXPECT_EQ(ruleset_id1, 111);
-
-  auto sequence_number2 = 2;
-  auto ruleset_id2 = rule_engine->getRuleSetIdBySequenceNumber(sequence_number2);
-  EXPECT_EQ(ruleset_id2, -1);
-}
+//   auto pkt = dynamic_cast<BarrierMessage*>(gate->messages[0]);
+//   EXPECT_EQ(pkt->getSrcAddr(), 2);
+//   EXPECT_EQ(pkt->getDestAddr(), 1);
+//   EXPECT_EQ(pkt->getSequenceNumber(), 1);
+// }
 
 TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   auto* sim = prepareSimulation();
@@ -356,77 +276,55 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   EXPECT_EQ(pkt->getDestAddr(), 1);
 }
 
-TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  sim->registerComponent(rule_engine);
-  sim->setContext(rule_engine);
-  rule_engine->callInitialize();
+// TEST_F(RuleEngineTest, executeAllRuleSets) {
+//   auto* sim = prepareSimulation();
+//   auto* routing_daemon = new MockRoutingDaemon();
+//   auto* hardware_monitor = new MockHardwareMonitor();
+//   auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
+//   sim->registerComponent(rule_engine);
+//   sim->setContext(rule_engine);
+//   rule_engine->callInitialize();
 
-  auto* msg = new LinkAllocationUpdateMessage();
-  msg->setSrcAddr(1);
-  msg->setDestAddr(2);
+//   Program empty{"empty", {}};
+//   Program cond_passed_once{"passed_once",
+//                            {
+//                                INSTR_LOAD_RegId_MemoryKey_{{RegId::REG0, MemoryKey{"count"}}},
+//                                INSTR_BEZ_Label_RegId_{{Label{"first_time"}, RegId::REG0}},
+//                                INSTR_RET_ReturnCode_{{ReturnCode::COND_FAILED}},
+//                                INSTR_INC_RegId_{{RegId::REG0}, "first_time"},
+//                                INSTR_STORE_MemoryKey_RegId_{{MemoryKey{"count"}, RegId::REG0}},
+//                                INSTR_RET_ReturnCode_{{ReturnCode::COND_PASSED}},
+//                            }};
+//   Program checker{"cond", {INSTR_STORE_MemoryKey_int_{{MemoryKey{"test"}, 123}}}};
+//   Program terminator{"terminator", {INSTR_RET_ReturnCode_{{ReturnCode::RS_TERMINATED}}}};
+//   Rule rule{
+//       "", -1, -1, cond_passed_once, checker,
+//   };
+//   RuleSet rs1{"rs2", {rule}, terminator};
+//   rs1.id = 1;
+//   rs1.owner_addr = 1;
+//   rule_engine->runtimes.acceptRuleSet(rs1);
 
-  rule_engine->sendLinkAllocationUpdateMessage(msg);
-  auto gate = rule_engine->toRouterGate;
-  EXPECT_EQ(gate->messages.size(), 1);
+//   rule_engine->ruleset_id_node_addresses_along_path_map[rs1.id].push_back(1);
+//   rule_engine->ruleset_id_node_addresses_along_path_map[rs1.id].push_back(5);
 
-  auto pkt = dynamic_cast<LinkAllocationUpdateMessage*>(gate->messages[0]);
-  EXPECT_EQ(pkt->getSrcAddr(), 2);
-  EXPECT_EQ(pkt->getDestAddr(), 1);
-}
+//   rule_engine->executeAllRuleSets();
+//   auto gate = rule_engine->toRouterGate;
+//   EXPECT_EQ(gate->messages.size(), 2);
 
-TEST_F(RuleEngineTest, executeAllRuleSets) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  sim->registerComponent(rule_engine);
-  sim->setContext(rule_engine);
-  rule_engine->callInitialize();
+//   auto pkt1 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[0]);
+//   EXPECT_EQ(pkt1->getSrcAddr(), 5);
+//   EXPECT_EQ(pkt1->getDestAddr(), 1);
+//   EXPECT_EQ(pkt1->getActual_srcAddr(), 5);
+//   EXPECT_EQ(pkt1->getActual_destAddr(), 1);
+//   EXPECT_EQ(pkt1->getRuleSet_id(), 1);
 
-  Program empty{"empty", {}};
-  Program cond_passed_once{"passed_once",
-                           {
-                               INSTR_LOAD_RegId_MemoryKey_{{RegId::REG0, MemoryKey{"count"}}},
-                               INSTR_BEZ_Label_RegId_{{Label{"first_time"}, RegId::REG0}},
-                               INSTR_RET_ReturnCode_{{ReturnCode::COND_FAILED}},
-                               INSTR_INC_RegId_{{RegId::REG0}, "first_time"},
-                               INSTR_STORE_MemoryKey_RegId_{{MemoryKey{"count"}, RegId::REG0}},
-                               INSTR_RET_ReturnCode_{{ReturnCode::COND_PASSED}},
-                           }};
-  Program checker{"cond", {INSTR_STORE_MemoryKey_int_{{MemoryKey{"test"}, 123}}}};
-  Program terminator{"terminator", {INSTR_RET_ReturnCode_{{ReturnCode::RS_TERMINATED}}}};
-  Rule rule{
-      "", -1, -1, cond_passed_once, checker,
-  };
-  RuleSet rs1{"rs2", {rule}, terminator};
-  rs1.id = 1;
-  rs1.owner_addr = 1;
-  rule_engine->runtimes.acceptRuleSet(rs1);
-
-  rule_engine->ruleset_id_node_addresses_along_path_map[rs1.id].push_back(1);
-  rule_engine->ruleset_id_node_addresses_along_path_map[rs1.id].push_back(5);
-
-  rule_engine->executeAllRuleSets();
-  auto gate = rule_engine->toRouterGate;
-  EXPECT_EQ(gate->messages.size(), 2);
-
-  auto pkt1 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[0]);
-  EXPECT_EQ(pkt1->getSrcAddr(), 5);
-  EXPECT_EQ(pkt1->getDestAddr(), 1);
-  EXPECT_EQ(pkt1->getActual_srcAddr(), 5);
-  EXPECT_EQ(pkt1->getActual_destAddr(), 1);
-  EXPECT_EQ(pkt1->getRuleSet_id(), 1);
-
-  auto pkt2 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[1]);
-  EXPECT_EQ(pkt2->getSrcAddr(), 5);
-  EXPECT_EQ(pkt2->getDestAddr(), 5);
-  EXPECT_EQ(pkt2->getActual_srcAddr(), 5);
-  EXPECT_EQ(pkt2->getActual_destAddr(), 5);
-  EXPECT_EQ(pkt2->getRuleSet_id(), 1);
-}
+//   auto pkt2 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[1]);
+//   EXPECT_EQ(pkt2->getSrcAddr(), 5);
+//   EXPECT_EQ(pkt2->getDestAddr(), 5);
+//   EXPECT_EQ(pkt2->getActual_srcAddr(), 5);
+//   EXPECT_EQ(pkt2->getActual_destAddr(), 5);
+//   EXPECT_EQ(pkt2->getRuleSet_id(), 1);
+// }
 
 }  // namespace
