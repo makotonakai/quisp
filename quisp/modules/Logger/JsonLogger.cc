@@ -139,53 +139,11 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
-  if (auto* req = dynamic_cast<const quisp::messages::BarrierRequest*>(msg)) {
+  if (auto* req = dynamic_cast<const quisp::messages::BarrierMessage*>(msg)) {
     std::stringstream os;
-    os << "\"msg_type\": \"BarrierRequest\"";
+    os << "\"msg_type\": \"BarrierMessage\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
-    os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
-    os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
-      if (i != 0) os << ", ";
-      os << req->getActiveLinkAllocations(i);
-    }
-    os << "]";
-    os << ", \"sequence_number\": " << req->getSequenceNumber();
-    return os.str();
-  }
-
-  if (auto* req = dynamic_cast<const quisp::messages::RejectBarrierRequest*>(msg)) {
-    std::stringstream os;
-    os << "\"msg_type\": \"RejectBarrierRequest\"";
-    os << ", \"dest_addr\": " << req->getDestAddr();
-    os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
-    os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
-    os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
-      if (i != 0) os << ", ";
-      os << req->getActiveLinkAllocations(i);
-    }
-    os << "]";
-    os << ", \"sequence_number\": " << req->getSequenceNumber();
-    return os.str();
-  }
-
-  if (auto* req = dynamic_cast<const quisp::messages::BarrierResponse*>(msg)) {
-    std::stringstream os;
-    os << "\"msg_type\": \"BarrierResponse\"";
-    os << ", \"dest_addr\": " << req->getDestAddr();
-    os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"actual_dest_addr\": " << req->getActualDestAddr();
-    os << ", \"actual_src_addr\": " << req->getActualSrcAddr();
-    os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
-      if (i != 0) os << ", ";
-      os << req->getActiveLinkAllocations(i);
-    }
-    os << "]";
     os << ", \"sequence_number\": " << req->getSequenceNumber();
     return os.str();
   }
@@ -195,12 +153,7 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << "\"msg_type\": \"WaitMessage\"";
     os << ", \"dest_addr\": " << req->getDestAddr();
     os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"stack_of_active_link_allocations\": [";
-    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
-      if (i != 0) os << ", ";
-      os << req->getActiveLinkAllocations(i);
-    }
-    os << "]";
+    os << ", \"dest_addr_of_barrier_message\": " << req->getDestAddrOfBarrierMessage();
     return os.str();
   }
 
