@@ -18,13 +18,14 @@
             "name": "Simulation",
             "program": "${workspaceFolder}/quisp/quisp_dbg",
             "args": [
-                "-n",
-                "./networks:./channels:./modules",
-                "-i",
-                "./images",
-                "./networks/omnetpp.ini",
+                "-f",
+                "${workspaceFolder}/quisp/simulations/simulation_test.ini",
                 "-u",
-                "Qtenv"
+                "Cmdenv",
+                "-n",
+                "${workspaceFolder}/quisp/networks/:${workspaceFolder}/quisp/modules:${workspaceFolder}/quisp/channels",
+                "-c",
+                "NoErrorMIM"
             ],
             "cwd": "${workspaceFolder}/quisp"
         },
