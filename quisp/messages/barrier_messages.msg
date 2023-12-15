@@ -12,33 +12,15 @@ class IQubitRecord {
 import base_messages;
 namespace quisp::messages;
 
-packet BarrierRequest extends Header
+packet BarrierMessage extends Header
 {
-    int actualSrcAddr;
-    int actualDestAddr;
-    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
     int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber);
 }
 
-packet RejectBarrierRequest extends Header
+packet WaitMessage extends Header
 {
-
-    int actualSrcAddr;
-    int actualDestAddr;
-    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
-    int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber);
+    int destAddrOfBarrierMessage @setter(setDestAddrOfBarrierMessage) @getter(getDestAddrOfBarrierMessage);
 }
 
-packet BarrierResponse extends Header
-{
 
-    int actualSrcAddr;
-    int actualDestAddr;
-    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
-    int sequenceNumber @setter(setSequenceNumber) @getter(getSequenceNumber);
-}
 
-packet WaitMessage extends Header {
-    int actualDestAddr;
-    unsigned long stack_of_ActiveLinkAllocations[] @appender(appendActiveLinkAllocation) @getter(getActiveLinkAllocations) @sizeGetter(getActiveLinkAllocationCount);
-}
