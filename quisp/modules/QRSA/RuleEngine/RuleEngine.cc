@@ -139,46 +139,41 @@ void RuleEngine::handleMessage(cMessage *msg) {
       ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(pkt->getNode_addresses_along_path(index));
     }
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
-    auto src_addr = pkt->getSrcAddr();
     sendLinkAllocationUpdateMessage(pkt);
+    if (lau_sent && lau_received) {
+      syncNextLinkAllocations();
+      auto src_addr = pkt->getSrcAddr();
+      auto bell_pair_exist_in_bell_pair_store = bell_pair_store.bellPairExist();
+      if (bell_pair_exist_in_bell_pair_store) {
+        sendBarrierMessage(src_addr);
+      } else {
+        waitForBellPairGeneration(src_addr);
+      }
+    }
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
     handleConnectionTeardownMessage(pkt);
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateMessage *>(msg)) {
-  } else if (auto *pkt = dynamic_cast<BarrierRequest *>(msg)) {
-    auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(pkt);
-    auto partner_addr = pkt->getSrcAddr();
-    sendBarrierResponse(pkt);
-    // allocateBellPairs(qnic_type, qnic_index);
-  } else if (auto *pkt = dynamic_cast<WaitMessage *>(msg)) {
-    auto partner_addr = pkt->getActualDestAddr();
-    auto bell_pair_exist = false;
-    for (int i = 0; i < number_of_qnics; i++) {
-      bell_pair_exist = bellPairExist(QNIC_E, i, partner_addr);
-      if (bell_pair_exist) {
-        break;
+    storeInfoAboutIncomingLinkAllocationUpdateMessage(pkt);
+    if (lau_sent && lau_received) {
+      syncNextLinkAllocations();
+      auto src_addr = pkt->getSrcAddr();
+      auto bell_pair_exist_in_bell_pair_store = bell_pair_store.bellPairExist();
+      auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumber();
+      if (bell_pair_exist_in_bell_pair_store && sequence_number != -1) {
+        sendBarrierMessage(src_addr);
+      } else {
+        waitForBellPairGeneration(src_addr);
       }
     }
-    auto qnic_index = bell_pair_store.getQnicIndexByNumberOfQnicsAndPartnerAddress(number_of_qnics, partner_addr);
-    auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumber(partner_addr, qnic_index);
-    if (bell_pair_exist && sequence_number != -1) {
-      finallySendBarrierRequest(pkt);
+  } else if (auto *pkt = dynamic_cast<WaitMessage *>(msg)) {
+    auto src_addr = pkt->getSrcAddr();
+    auto bell_pair_exist_in_bell_pair_store = bell_pair_store.bellPairExist();
+    auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumber();
+    if (bell_pair_exist_in_bell_pair_store && sequence_number != -1) {
+      sendBarrierMessage(src_addr);
     } else {
-      sendWaitMessageAgain(pkt);
+      keepWaitingForBellPairGeneration(pkt);
     }
-  } else if (auto *pkt = dynamic_cast<BarrierResponse *>(msg)) {
-    auto sequence_number = getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(pkt);
-    auto partner_addr = pkt->getSrcAddr();
-    // allocateBellPairs(qnic_type, qnic_index);
-    // runtime->assignQubitToRuleSet(partner_addr, allocated_qubit_record);
-    // runtime->exec();
-    // if (!runtime->isQubitLocked(qubit_record)) {
-    //   qubit_record->setAllocated(true);
-    //   runtime->assignQubitToRuleSet(partner_addr, qubit_record);
-    // }
-
-    // runtime->exec();
-    // auto ruleset_id = pkt->getRuleSetId();
-    // executeRuleSetByRuleSetId(ruleset_id);
   }
   // for (int i = 0; i < number_of_qnics; i++) {
   //   allocateBellPairs(QNIC_E, i);
@@ -314,112 +309,6 @@ void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_i
   }
 }
 
-bool RuleEngine::bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr) {
-  auto bell_pair_exist = bell_pair_store.bellPairExist(partner_addr);
-  return bell_pair_exist;
-}
-
-void RuleEngine::sendBarrierRequest(LinkAllocationUpdateMessage *msg) {
-  BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (auto i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    pkt->appendActiveLinkAllocation(msg->getActiveLinkAllocations(i));
-  }
-  auto sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
-  pkt->setSequenceNumber(sequence_number);
-  send(pkt, "RouterPort$o");
-}
-
-void RuleEngine::sendRejectBarrierRequest(BarrierRequest *msg) {
-  RejectBarrierRequest *pkt = new RejectBarrierRequest("RejectBarrierRequest");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (auto i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    pkt->appendActiveLinkAllocation(msg->getActiveLinkAllocations(i));
-  }
-  auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(msg);
-  pkt->setSequenceNumber(sequence_number);
-  send(pkt, "RouterPort$o");
-}
-
-void RuleEngine::resendBarrierRequest(RejectBarrierRequest *msg) {
-  BarrierRequest *pkt = new BarrierRequest("BarrierRequest");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (auto i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    pkt->appendActiveLinkAllocation(msg->getActiveLinkAllocations(i));
-  }
-  auto sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
-  pkt->setSequenceNumber(sequence_number);
-  send(pkt, "RouterPort$o");
-}
-
-void RuleEngine::sendBarrierResponse(BarrierRequest *msg) {
-  BarrierResponse *pkt = new BarrierResponse("BarrierResponse");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (auto i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    pkt->setStack_of_ActiveLinkAllocations(i, msg->getActiveLinkAllocations(i));
-  }
-  auto sequence_number = getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(msg);
-  pkt->setSequenceNumber(sequence_number);
-  send(pkt, "RouterPort$o");
-}
-
-void RuleEngine::finallySendBarrierRequest(WaitMessage *msg) {
-  BarrierRequest *pkt = new BarrierRequest("BarrierResponse");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getActualDestAddr());
-  auto sequence_number = getSmallestSequenceNumber(msg->getActualDestAddr());
-  pkt->setSequenceNumber(sequence_number);
-  send(pkt, "RouterPort$o");
-}
-
-void RuleEngine::sendWaitMessage(LinkAllocationUpdateMessage *msg) {
-  WaitMessage *pkt = new WaitMessage("WaitMessage");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getDestAddr());
-  pkt->setActualDestAddr(msg->getSrcAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (int i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    auto ruleset_id = msg->getActiveLinkAllocations(i);
-    pkt->setStack_of_ActiveLinkAllocations(i, ruleset_id);
-  }
-  // send(pkt, "RouterPort$o");
-  scheduleAt(simTime() + 0.00001, pkt);
-}
-
-void RuleEngine::sendWaitMessageAgain(WaitMessage *msg) {
-  WaitMessage *pkt = new WaitMessage("WaitMessage");
-  pkt->setSrcAddr(msg->getDestAddr());
-  pkt->setDestAddr(msg->getDestAddr());
-  pkt->setActualDestAddr(msg->getActualDestAddr());
-  pkt->setStack_of_ActiveLinkAllocationsArraySize(msg->getActiveLinkAllocationCount());
-  for (int i = 0; i < msg->getActiveLinkAllocationCount(); i++) {
-    auto ruleset_id = msg->getActiveLinkAllocations(i);
-    pkt->setStack_of_ActiveLinkAllocations(i, ruleset_id);
-  }
-  // send(pkt, "RouterPort$o");
-  scheduleAt(simTime() + 0.00001, pkt);
-}
-
-int RuleEngine::getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(BarrierRequest *msg) {
-  auto incoming_sequence_number = msg->getSequenceNumber();
-  auto my_sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
-  return std::max(incoming_sequence_number, my_sequence_number);
-}
-
-int RuleEngine::getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(BarrierResponse *msg) {
-  auto incoming_sequence_number = msg->getSequenceNumber();
-  auto my_sequence_number = getSmallestSequenceNumber(msg->getSrcAddr());
-  return std::max(incoming_sequence_number, my_sequence_number);
-}
-
 void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
   if (msg->getLAU_destAddr_left() != -1) {
     LinkAllocationUpdateMessage *pkt1 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
@@ -450,6 +339,8 @@ void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalCo
 }
 
 void RuleEngine::sendLinkAllocationUpdateMessage(LinkAllocationUpdateNotifier *msg) {
+  auto random_number = rand();
+
   std::vector<int> neighbor_addresses;
   auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
   for (auto i = 0; i < num_neighbors; i++) {
@@ -464,14 +355,67 @@ void RuleEngine::sendLinkAllocationUpdateMessage(LinkAllocationUpdateNotifier *m
     for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
       if (it->is_active) {
         pkt->appendActiveLinkAllocation(it->ruleset.id);
+        active_link_allocations.push_back(it->ruleset.id);
       } else {
         pkt->appendNextLinkAllocation(it->ruleset.id);
+        next_link_allocations.push_back(it->ruleset.id);
       }
     }
 
-    pkt->setRandomNumber(rand());
+    pkt->setRandomNumber(random_number);
     send(pkt, "RouterPort$o");
+
+    lau_sent = true;
   }
+}
+
+void RuleEngine::storeInfoAboutIncomingLinkAllocationUpdateMessage(LinkAllocationUpdateMessage *msg) {
+  incoming_random_number = msg->getRandomNumber();
+
+  auto incoming_active_link_allocations_count = msg->getActiveLinkAllocationCount();
+  for (auto i = 0; i < incoming_active_link_allocations_count; i++) {
+    auto incoming_active_link_allocation = msg->getActiveLinkAllocations(i);
+    incoming_active_link_allocations.push_back(incoming_active_link_allocation);
+  }
+
+  auto incoming_next_link_allocations_count = msg->getNextLinkAllocationCount();
+  for (auto i = 0; i < incoming_next_link_allocations_count; i++) {
+    auto incoming_next_link_allocation = msg->getNextLinkAllocations(i);
+    incoming_next_link_allocations.push_back(incoming_next_link_allocation);
+  }
+
+  lau_received = true;
+}
+
+void RuleEngine::syncNextLinkAllocations() {
+  if (incoming_random_number > random_number) {
+    next_link_allocations = incoming_next_link_allocations;
+  }
+}
+
+void RuleEngine::sendBarrierMessage(int src_addr) {
+  BarrierMessage *pkt = new BarrierMessage("BarrierMessage");
+  pkt->setSrcAddr(parentAddress);
+  pkt->setDestAddr(src_addr);
+  auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumber();
+  pkt->setSequenceNumber(sequence_number);
+  send(pkt, "RouterPort$o");
+}
+
+void RuleEngine::waitForBellPairGeneration(int src_addr) {
+  WaitMessage *pkt = new WaitMessage("WaitMessage");
+  pkt->setSrcAddr(parentAddress);
+  pkt->setDestAddr(parentAddress);
+  pkt->setDestAddrOfBarrierMessage(src_addr);
+  scheduleAt(simTime() + 0.01, pkt);
+}
+
+void RuleEngine::keepWaitingForBellPairGeneration(WaitMessage *msg) {
+  WaitMessage *pkt = new WaitMessage("WaitMessage");
+  pkt->setSrcAddr(parentAddress);
+  pkt->setDestAddr(parentAddress);
+  pkt->setDestAddrOfBarrierMessage(msg->getDestAddrOfBarrierMessage());
+  scheduleAt(simTime() + 0.01, pkt);
 }
 
 // Invoked whenever a new resource (entangled with neighbor) has been created.
@@ -492,19 +436,6 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index) {
         }
       }
     }
-  }
-}
-
-int RuleEngine::getSmallestSequenceNumber(QNodeAddr partner_addr) {
-  auto qnic_index = bell_pair_store.getQnicIndexByNumberOfQnicsAndPartnerAddress(number_of_qnics, partner_addr);
-  auto sequence_number = bell_pair_store.getFirstAvailableSequenceNumber(partner_addr, qnic_index);
-  return sequence_number;
-}
-
-void RuleEngine::executeRuleSetByRuleSetId(unsigned long ruleset_id) {
-  auto it = runtimes.findById(ruleset_id);
-  if (it != runtimes.end()) {
-    it->exec();
   }
 }
 

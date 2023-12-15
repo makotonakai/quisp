@@ -86,23 +86,15 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
   void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
-  void sendBarrierRequest(messages::LinkAllocationUpdateMessage *msg);
-  void sendRejectBarrierRequest(messages::BarrierRequest *msg);
-  void resendBarrierRequest(messages::RejectBarrierRequest *msg);
-  void sendBarrierResponse(messages::BarrierRequest *msg);
-  void finallySendBarrierRequest(messages::WaitMessage *msg);
-  void sendWaitMessage(messages::LinkAllocationUpdateMessage *msg);
-  void sendWaitMessageAgain(messages::WaitMessage *msg);
   void sendLinkAllocationUpdateMessage(messages::LinkAllocationUpdateNotifier *msg);
+  void storeInfoAboutIncomingLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
+  void syncNextLinkAllocations();
+  void sendBarrierMessage(int src_addr);
+  void waitForBellPairGeneration(int src_addr);
+  void keepWaitingForBellPairGeneration(messages::WaitMessage *msg);
   void sendLinkAllocationUpdateMessageForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
-  void sendLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
-  bool bellPairExist(QNIC_type qnic_type, QNicIndex qnic_index, QNodeAddr partner_addr);
   std::vector<unsigned long long> getActiveLinkAllcations();
-  void executeRuleSetByRuleSetId(unsigned long ruleset_id);
   void executeAllRuleSets();
-  int getSmallestSequenceNumber(QNodeAddr partner_addr);
-  int getBiggerSequenceNumberBetweenBarrierRequestAndThisNode(messages::BarrierRequest *msg);
-  int getBiggerSequenceNumberBetweenBarrierResponseAndThisNode(messages::BarrierResponse *msg);
   unsigned long getRuleSetIdBySequenceNumber(int sequence_number);
 
  protected:
@@ -127,6 +119,14 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::unordered_map<int, std::vector<unsigned long>> node_address_next_link_allocation_map;
   std::unordered_map<int, bool> node_address_lau_sent_map;
   std::unordered_map<int, bool> node_address_lau_responded_map;
+  std::vector<unsigned long> incoming_active_link_allocations;
+  std::vector<unsigned long> incoming_next_link_allocations;
+  int incoming_random_number;
+  std::vector<unsigned long> active_link_allocations;
+  std::vector<unsigned long> next_link_allocations;
+  int random_number;
+  bool lau_sent = false;
+  bool lau_received = false;
 };
 
 Define_Module(RuleEngine);
