@@ -169,7 +169,8 @@ TEST_F(RuleEngineTest, allocateBellPairs) {
   auto runtime = quisp::runtime::Runtime{};
   rule_engine->runtimes.acceptRuleSet(rs);
 
-  rule_engine->allocateBellPairs(QNIC_E, 3);
+  auto sequence_number = 0;
+  rule_engine->allocateBellPairs(QNIC_E, 3, sequence_number);
   EXPECT_TRUE(qubit_record1->isAllocated());
 
   // resource allocation assigns a corresponding qubit to action's resource

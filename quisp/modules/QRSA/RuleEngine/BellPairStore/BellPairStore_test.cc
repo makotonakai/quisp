@@ -18,6 +18,7 @@ class BellPairStore : public quisp::modules::BellPairStore {
  public:
   using quisp::modules::BellPairStore::_resources;
   using quisp::modules::BellPairStore::BellPairStore;
+  using quisp::modules::BellPairStore::sequence_number_is_allocated_map;
 };
 
 class BellPairStoreTest : public ::testing::Test {
@@ -46,7 +47,10 @@ class BellPairStoreTest : public ::testing::Test {
   ILogger *logger;
 };
 
-TEST_F(BellPairStoreTest, init) { EXPECT_EQ(store._resources.size(), 0); }
+TEST_F(BellPairStoreTest, init) {
+  EXPECT_EQ(store._resources.size(), 0);
+  EXPECT_EQ(store.sequence_number_is_allocated_map.size(), 0);
+}
 
 TEST_F(BellPairStoreTest, insert) {
   store.insertEntangledQubit(0, 7, qubit1);

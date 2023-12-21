@@ -190,19 +190,19 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto barrier_received = node_address_barrier_received_map[src_addr];
     if (barrier_sent && barrier_received) {
       negotiateNextSequenceNumber(src_addr);
+      auto sequence_number = node_address_sequence_number_map[src_addr];
+      for (int i = 0; i < number_of_qnics; i++) {
+        allocateBellPairs(QNIC_E, i, sequence_number);
+      }
+      for (int i = 0; i < number_of_qnics_r; i++) {
+        allocateBellPairs(QNIC_R, i, sequence_number);
+      }
+      for (int i = 0; i < number_of_qnics_rp; i++) {
+        allocateBellPairs(QNIC_RP, i, sequence_number);
+      }
+      executeAllRuleSets();
     }
   }
-  // for (int i = 0; i < number_of_qnics; i++) {
-  //   allocateBellPairs(QNIC_E, i);
-  // }
-  // for (int i = 0; i < number_of_qnics_r; i++) {
-  //   allocateBellPairs(QNIC_R, i);
-  // }
-  // for (int i = 0; i < number_of_qnics_rp; i++) {
-  //   allocateBellPairs(QNIC_RP, i);
-  // }
-
-  // executeAllRuleSets();
   delete msg;
 }
 
@@ -468,31 +468,29 @@ bool RuleEngine::bellPairExist() {
 
 // Invoked whenever a new resource (entangled with neighbor) has been created.
 // Allocates those resources to a particular ruleset, from top to bottom (all of it).
-void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index) {
-  for (auto &runtime : runtimes) {
-    auto &partners = runtime.partners;
+void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequence_number) {
+  for (auto i = 0; i < runtimes.size(); i++) {
+    auto &partners = runtimes.at(i).partners;
     for (auto &partner_addr : partners) {
       auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
       for (auto it = range.first; it != range.second; ++it) {
-        auto qubit_record = it->second.second;
+        auto sequence_number = it->first;
+        if (first_sequence_number <= sequence_number) {
+          auto qubit_record = it->second.second;
 
-        // 3. if the qubit is not allocated yet, and the qubit has not been allocated to this rule,
-        // if the qubit has already been assigned to the rule, the qubit is not allocatable to that rule
-        if (!qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
-          qubit_record->setAllocated(true);
-          runtime.assignQubitToRuleSet(partner_addr, qubit_record);
+          // 3. if the qubit is not allocated yet, and the qubit has not been allocated to this rule,
+          // if the qubit has already been assigned to the rule, the qubit is not allocatable to that rule
+          if (!qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
+            qubit_record->setAllocated(true);
+            runtimes.at(i).assignQubitToRuleSet(partner_addr, qubit_record);
+          }
         }
       }
     }
   }
 }
 
-void RuleEngine::executeAllRuleSets() {
-  auto terminated_ruleset_iterator_list = runtimes.exec();
-  for (auto terminated_ruleset : terminated_ruleset_iterator_list) {
-    sendConnectionTeardownMessageForRuleSet(terminated_ruleset.id);
-  }
-}
+void RuleEngine::executeAllRuleSets() { runtimes.exec(); }
 
 void RuleEngine::freeConsumedResource(int qnic_index /*Not the address!!!*/, IStationaryQubit *qubit, QNIC_type qnic_type) {
   auto *qubit_record = qnic_store->getQubitRecord(qnic_type, qnic_index, qubit->par("stationary_qubit_address"));

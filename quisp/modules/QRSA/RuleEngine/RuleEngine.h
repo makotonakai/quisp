@@ -81,7 +81,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   BellPairStore bell_pair_store;
 
   void freeConsumedResource(int qnic_index, IStationaryQubit *qubit, QNIC_type qnic_type);
-  void allocateBellPairs(int qnic_type, int qnic_index);
+  void allocateBellPairs(int qnic_type, int qnic_index, int first_sequence_number);
   void handleConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
