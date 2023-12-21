@@ -22,3 +22,7 @@ packet InternalConnectionTeardownMessage extends Header
     int stack_of_QNICAddresses[];
 }
 
+packet ConnectionTeardownNotifier extends Header {
+    unsigned long RuleSet_id;
+}
+
