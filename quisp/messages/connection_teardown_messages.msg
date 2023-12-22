@@ -23,6 +23,6 @@ packet InternalConnectionTeardownMessage extends Header
 }
 
 packet ConnectionTeardownNotifier extends Header {
-    unsigned long RuleSet_id;
+    unsigned long ruleset_id @setter(setRuleSetId) @getter(getRuleSetId);
 }
 
