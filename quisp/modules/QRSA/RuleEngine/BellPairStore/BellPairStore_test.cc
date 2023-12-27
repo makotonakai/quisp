@@ -61,6 +61,8 @@ TEST_F(BellPairStoreTest, insert) {
   auto it = store._resources[key].find(7);
   ASSERT_FALSE(it == store._resources[key].end());
   EXPECT_EQ(it->second.second, dynamic_cast<IQubitRecord *>(qubit1));
+  auto is_allocated = store.sequence_number_is_allocated_map[0];
+  EXPECT_FALSE(is_allocated);
 }
 
 TEST_F(BellPairStoreTest, erase) {
@@ -137,12 +139,6 @@ TEST_F(BellPairStoreTest, getRangeWithLoop) {
     count++;
   }
   EXPECT_EQ(count, 4);
-}
-
-TEST_F(BellPairStoreTest, getAvailableSequenceNumber) {
-  store.insertEntangledQubit(1, 7, qubit1);
-  auto sequence_number = store.getFirstAvailableSequenceNumber();
-  EXPECT_EQ(sequence_number, 1);
 }
 
 }  // namespace

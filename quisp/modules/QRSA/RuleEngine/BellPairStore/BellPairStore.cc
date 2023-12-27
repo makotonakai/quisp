@@ -78,7 +78,7 @@ int BellPairStore::getQnicIndexByNumberOfQnicsAndPartnerAddress(int number_of_qn
 
 int BellPairStore::getFirstAvailableSequenceNumber() {
   int sequence_number = -1;
-  for (const auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
+  for (auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
     if (!is_allocated) {
       sequence_number = _sequence_number;
       break;
