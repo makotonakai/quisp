@@ -157,6 +157,20 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
+  if (auto* req = dynamic_cast<const quisp::messages::ConnectionTeardownNotifier*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"ConnectionTeardownNotifier\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"stack_of_ruleset_id\": [";
+    for (int i = 0; i < req->getRuleSetIdCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getRuleSetIds(i);
+    }
+    os << "]";
+    return os.str();
+  }
+
   if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateMessage*>(msg)) {
     std::stringstream os;
     os << "\"msg_type\": \"LinkAllocationUpdateMessage\"";
