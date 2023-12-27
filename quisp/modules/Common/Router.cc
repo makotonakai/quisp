@@ -128,6 +128,10 @@ void Router::handleMessage(cMessage *msg) {
     bubble("Wait Message packet received");
     send(pk, "rePort$o");
     return;
+  } else if (dest_addr == my_address && dynamic_cast<ConnectionTeardownNotifier *>(msg)) {
+    bubble("Connection Teardown Notifier packet received");
+    send(pk, "cmPort$o");
+    return;
   } else if (dest_addr == my_address && dynamic_cast<SwappingResult *>(msg)) {
     bubble("Swapping Result packet received");
     send(pk, "rePort$o");

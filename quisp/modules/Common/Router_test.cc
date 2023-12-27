@@ -169,13 +169,6 @@ TEST_F(RouterTest, handleInternalRuleSetForwarding_Application) {
   ASSERT_EQ(router->rePort->messages.size(), 1);
 }
 
-TEST_F(RouterTest, handleConnectionTeardownMessage) {
-  auto msg = new ConnectionTeardownMessage;
-  msg->setDestAddr(10);
-  router->handleMessage(msg);
-  ASSERT_EQ(router->cmPort->messages.size(), 1);
-}
-
 TEST_F(RouterTest, handleInternalConnectionTeardownMessage) {
   auto msg = new InternalConnectionTeardownMessage;
   msg->setDestAddr(10);
@@ -195,6 +188,13 @@ TEST_F(RouterTest, handleWaitMessage) {
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleConnectionTeardownNotifier) {
+  auto msg = new ConnectionTeardownNotifier;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->cmPort->messages.size(), 1);
 }
 
 TEST_F(RouterTest, handleLinkAllocationUpdateMessage) {
