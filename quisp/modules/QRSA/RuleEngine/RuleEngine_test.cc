@@ -277,6 +277,24 @@ TEST_F(RuleEngineTest, sendLinkAllocationUpdateMessage) {
   EXPECT_EQ(pkt->getDestAddr(), 1);
 }
 
+TEST_F(RuleEngineTest, sendConnectionTeardownNotifier) {
+  auto* sim = prepareSimulation();
+  auto* routing_daemon = new MockRoutingDaemon();
+  auto* hardware_monitor = new MockHardwareMonitor();
+  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
+  sim->registerComponent(rule_engine);
+  sim->setContext(rule_engine);
+  rule_engine->callInitialize();
+
+  auto ruleset_id_list = std::vector<unsigned long>{111};
+  rule_engine->sendConnectionTeardownNotifier(ruleset_id_list);
+  auto gate = rule_engine->toRouterGate;
+  EXPECT_EQ(gate->messages.size(), 1);
+
+  auto pkt = dynamic_cast<ConnectionTeardownNotifier*>(gate->messages[0]);
+  EXPECT_EQ(pkt->getRuleSetIds(0), 111);
+}
+
 // TEST_F(RuleEngineTest, executeAllRuleSets) {
 //   auto* sim = prepareSimulation();
 //   auto* routing_daemon = new MockRoutingDaemon();

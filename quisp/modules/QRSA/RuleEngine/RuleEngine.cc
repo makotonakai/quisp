@@ -490,7 +490,21 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
   }
 }
 
-void RuleEngine::executeAllRuleSets() { runtimes.exec(); }
+void RuleEngine::sendConnectionTeardownNotifier(std::vector<unsigned long> ruleset_id_list) {
+  ConnectionTeardownNotifier *pkt = new ConnectionTeardownNotifier("ConnectionTeardownNotifier");
+  pkt->setSrcAddr(parentAddress);
+  pkt->setDestAddr(parentAddress);
+  for (auto &ruleset_id : ruleset_id_list) {
+    pkt->appendRuleSetId(ruleset_id);
+  }
+  send(pkt, "RouterPort$o");
+}
+
+void RuleEngine::executeAllRuleSets() {
+  runtimes.exec();
+  auto terminated_ruleset_id_list = runtimes.getTerminatedRuleSetIDs();
+  sendConnectionTeardownNotifier(terminated_ruleset_id_list);
+}
 
 void RuleEngine::freeConsumedResource(int qnic_index /*Not the address!!!*/, IStationaryQubit *qubit, QNIC_type qnic_type) {
   auto *qubit_record = qnic_store->getQubitRecord(qnic_type, qnic_index, qubit->par("stationary_qubit_address"));

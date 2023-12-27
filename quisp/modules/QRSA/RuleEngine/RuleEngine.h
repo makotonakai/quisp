@@ -99,6 +99,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   bool bellPairExist();
   void storeInfoAboutBarrierMessage(messages::BarrierMessage *msg);
   void negotiateNextSequenceNumber(int src_addr);
+  void sendConnectionTeardownNotifier(std::vector<unsigned long> ruleset_id_list);
 
  protected:
   void initialize() override;
