@@ -4,6 +4,7 @@
 #include <iterator>
 #include <vector>
 #include "RuleSet.h"
+#include "Runtime.h"
 #include "omnetpp/cexception.h"
 #include "runtime/RuleSet.h"
 #include "runtime/types.h"
@@ -27,12 +28,15 @@ void RuntimeManager::exec() {
   for (auto it = runtimes.begin(); it != runtimes.end();) {
     it->exec();
     if (it->is_terminated) {
+      terminated_ruleset_id_list.push_back(it->ruleset.id);
       it = runtimes.erase(it);
     } else {
       ++it;
     }
   }
 }
+
+std::vector<unsigned long> RuntimeManager::getTerminatedRuleSetIDs() { return terminated_ruleset_id_list; }
 
 void RuntimeManager::stopById(unsigned long long ruleset_id) {
   auto it = findById(ruleset_id);
