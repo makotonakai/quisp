@@ -9,12 +9,14 @@
 #include <cstddef>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "BellPairStore/BellPairStore.h"
 #include "QNicStore/QNicStore.h"
 #include "RuntimeCallback.h"
 #include "messages/QNode_ipc_messages_m.h"
@@ -27,6 +29,8 @@
 #include "rules/RuleSet.h"
 #include "runtime/RuleSet.h"
 #include "runtime/Runtime.h"
+
+using quisp::runtime::Runtime;
 
 namespace quisp::modules {
 
@@ -469,23 +473,40 @@ bool RuleEngine::bellPairExist() {
 // Invoked whenever a new resource (entangled with neighbor) has been created.
 // Allocates those resources to a particular ruleset, from top to bottom (all of it).
 void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequence_number) {
-  for (auto i = 0; i < runtimes.size(); i++) {
-    auto &partners = runtimes.at(i).partners;
-    for (auto &partner_addr : partners) {
-      auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
-      for (auto it = range.first; it != range.second; ++it) {
-        auto sequence_number = it->first;
-        if (first_sequence_number <= sequence_number) {
-          auto qubit_record = it->second.second;
+  std::map<int, std::vector<int>> partner_addr_runtime_indices_map;
+  auto index = 0;
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    auto partners = it->partners;
+    for (auto partner : partners) {
+      partner_addr_runtime_indices_map[partner.val].push_back(index);
+    }
+    index += 1;
+  }
 
-          // 3. if the qubit is not allocated yet, and the qubit has not been allocated to this rule,
-          // if the qubit has already been assigned to the rule, the qubit is not allocatable to that rule
-          if (!qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
-            qubit_record->setAllocated(true);
-            runtimes.at(i).assignQubitToRuleSet(partner_addr, qubit_record);
-          }
+  for (const auto &[partner_addr, _] : partner_addr_runtime_indices_map) {
+    auto runtime_indices = partner_addr_runtime_indices_map[partner_addr];
+    auto bell_pair_range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr);
+
+    auto bell_pair_num = 0;
+    for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
+      bell_pair_num += 1;
+    }
+
+    auto number = 0;
+    for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
+      auto sequence_number_qubit_record = it->second;
+      auto sequence_number = sequence_number_qubit_record.first;
+      if (first_sequence_number <= sequence_number) {
+        auto qubit_record = sequence_number_qubit_record.second;
+        if (!qubit_record->isAllocated()) {
+          qubit_record->setAllocated(true);
+          auto index = number * runtime_indices.size() / bell_pair_num;
+          auto runtime_index = runtime_indices[index];
+          std::cout << runtime_index << std::endl;
+          runtimes.at(runtime_index).assignQubitToRuleSet(partner_addr, qubit_record);
         }
       }
+      number += 1;
     }
   }
 }

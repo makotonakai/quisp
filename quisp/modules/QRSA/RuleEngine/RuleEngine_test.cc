@@ -157,9 +157,9 @@ TEST_F(RuleEngineTest, allocateBellPairs) {
   auto rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, nullptr, qnic_specs};
   sim->registerComponent(rule_engine);
   rule_engine->callInitialize();
-  rule_engine->setAllResources(0, 0, qubit_record0);
+  rule_engine->setAllResources(0, 1, qubit_record0);
   rule_engine->setAllResources(1, 1, qubit_record1);
-  rule_engine->setAllResources(2, 2, qubit_record2);
+  rule_engine->setAllResources(2, 1, qubit_record2);
   int q0 = 0;
   QNodeAddr partner_addr{1};
   // this action needs a resource qubit that is entangled with partner 1.
@@ -169,14 +169,23 @@ TEST_F(RuleEngineTest, allocateBellPairs) {
   auto runtime = quisp::runtime::Runtime{};
   rule_engine->runtimes.acceptRuleSet(rs);
 
-  auto sequence_number = 0;
+  auto rs2 = quisp::runtime::RuleSet{"test rs", {quisp::runtime::Rule{"test", -1, -1, empty_condition, test_action}}};
+  rule_engine->runtimes.acceptRuleSet(rs2);
+
+  auto sequence_number = 1;
   rule_engine->allocateBellPairs(QNIC_E, 3, sequence_number);
+  EXPECT_FALSE(qubit_record0->isAllocated());
   EXPECT_TRUE(qubit_record1->isAllocated());
+  EXPECT_TRUE(qubit_record2->isAllocated());
 
   // resource allocation assigns a corresponding qubit to action's resource
   auto& rt = rule_engine->runtimes.at(0);
   EXPECT_EQ(rt.ruleset.rules.size(), 1);
   EXPECT_EQ(rt.qubits.size(), 1);
+
+  auto& rt2 = rule_engine->runtimes.at(1);
+  EXPECT_EQ(rt2.ruleset.rules.size(), 1);
+  EXPECT_EQ(rt2.qubits.size(), 1);
 }
 
 TEST_F(RuleEngineTest, freeConsumedResource) {
