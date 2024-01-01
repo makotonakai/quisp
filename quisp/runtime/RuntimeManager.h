@@ -22,9 +22,9 @@ class RuntimeManager {
   std::vector<Runtime>::iterator end();
   std::vector<Runtime>::reference at(size_t);
   size_t size() const;
+  std::vector<unsigned long> terminated_ruleset_id_list;
 
  protected:
-  std::vector<unsigned long> terminated_ruleset_id_list;
   std::vector<Runtime> runtimes;
   std::unique_ptr<Runtime::ICallBack> callback;
   std::map<unsigned long, std::vector<QNodeAddr> > ruleset_id_partners_map;

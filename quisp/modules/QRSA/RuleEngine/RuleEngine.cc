@@ -88,8 +88,6 @@ void RuleEngine::initialize() {
 void RuleEngine::handleMessage(cMessage *msg) {
   logger->logPacket("handleRuleEngineMessage", msg);
 
-  // executeAllRuleSets();  // New resource added to QNIC with qnic_type qnic_index.
-
   if (auto *notification_packet = dynamic_cast<BSMTimingNotification *>(msg)) {
     if (auto *bsa_results = dynamic_cast<CombinedBSAresults *>(msg)) {
       handleLinkGenerationResult(bsa_results);
@@ -502,7 +500,6 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
           qubit_record->setAllocated(true);
           auto index = number * runtime_indices.size() / bell_pair_num;
           auto runtime_index = runtime_indices[index];
-          std::cout << runtime_index << std::endl;
           runtimes.at(runtime_index).assignQubitToRuleSet(partner_addr, qubit_record);
         }
       }
@@ -515,7 +512,7 @@ void RuleEngine::sendConnectionTeardownNotifier(std::vector<unsigned long> rules
   ConnectionTeardownNotifier *pkt = new ConnectionTeardownNotifier("ConnectionTeardownNotifier");
   pkt->setSrcAddr(parentAddress);
   pkt->setDestAddr(parentAddress);
-  for (auto &ruleset_id : ruleset_id_list) {
+  for (auto ruleset_id : ruleset_id_list) {
     pkt->appendRuleSetId(ruleset_id);
   }
   send(pkt, "RouterPort$o");
