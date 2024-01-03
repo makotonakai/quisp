@@ -35,7 +35,7 @@ void BellPairStore::eraseQubit(qrsa::IQubitRecord *const qubit) {
   auto it = resource.begin();
   while (it != resource.cend()) {
     if (it->second.second == qubit) {
-      logger->logBellPairInfo("Erased", it->first, it->second.first, qubit->getQNicType(), qubit->getQNicIndex(), qubit->getQubitIndex());
+      logger->logBellPairInfo("Erased", it->second.first, it->first, qubit->getQNicType(), qubit->getQNicIndex(), qubit->getQubitIndex());
       it = resource.erase(it);
     } else
       it++;
