@@ -490,6 +490,8 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
       bell_pair_num += 1;
     }
 
+    std::map<int, int> runtime_index_bell_pair_number_map;
+
     auto number = 0;
     for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
       auto sequence_number_qubit_record = it->second;
@@ -501,10 +503,24 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
           auto index = number * runtime_indices.size() / bell_pair_num;
           auto runtime_index = runtime_indices[index];
           runtimes.at(runtime_index).assignQubitToRuleSet(partner_addr, qubit_record);
+          if (runtime_index_bell_pair_number_map.find(runtime_index) == runtime_index_bell_pair_number_map.end()) {
+            runtime_index_bell_pair_number_map[runtime_index] = 0;
+          } else {
+            runtime_index_bell_pair_number_map[runtime_index] = runtime_index_bell_pair_number_map[runtime_index] + 1;
+          }
         }
       }
       number += 1;
     }
+
+    auto index = 0;
+    std::cout << "[";
+    for (auto const &[key, val] : runtime_index_bell_pair_number_map) {
+      if (index != 0) std::cout << ", ";
+      std::cout << val;
+      index += 1;
+    }
+    std::cout << "]" << std::endl;
   }
 }
 
