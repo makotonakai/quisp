@@ -28,6 +28,7 @@ void RuntimeManager::exec() {
   for (auto it = runtimes.begin(); it != runtimes.end();) {
     auto ruleset_id = it->ruleset.id;
     it->exec();
+    std::cout << it->return_code << std::endl;
     if (it->is_terminated) {
       terminated_ruleset_id_list.push_back(ruleset_id);
       it = runtimes.erase(it);
