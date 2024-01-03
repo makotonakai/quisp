@@ -521,7 +521,9 @@ void RuleEngine::sendConnectionTeardownNotifier(std::vector<unsigned long> rules
 void RuleEngine::executeAllRuleSets() {
   runtimes.exec();
   auto terminated_ruleset_id_list = runtimes.getTerminatedRuleSetIDs();
-  sendConnectionTeardownNotifier(terminated_ruleset_id_list);
+  if (terminated_ruleset_id_list.size() != 0) {
+    sendConnectionTeardownNotifier(terminated_ruleset_id_list);
+  }
 }
 
 void RuleEngine::freeConsumedResource(int qnic_index /*Not the address!!!*/, IStationaryQubit *qubit, QNIC_type qnic_type) {
