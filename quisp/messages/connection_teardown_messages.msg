@@ -7,15 +7,14 @@ packet ConnectionTeardownMessage extends Header
 {
     int left_nodeAddr @getter(getLeftNodeAddr) @setter(setLeftNodeAddr);
     int right_nodeAddr @getter(getRightNodeAddr) @setter(setRightNodeAddr);
-    unsigned long RuleSet_id;
+    unsigned long ruleSetId @getter(getRuleSetId) @setter(setRuleSetId);
 }
 
 packet InternalConnectionTeardownMessage extends Header
 {
     int left_nodeAddr @getter(getLeftNodeAddr) @setter(setLeftNodeAddr);
     int right_nodeAddr @getter(getRightNodeAddr) @setter(setRightNodeAddr);
-    unsigned long RuleSet_id;
-    int stack_of_QNICAddresses[];
+    unsigned long ruleSetId @getter(getRuleSetId) @setter(setRuleSetId);
 }
 
 packet ConnectionTeardownNotifier extends Header {
