@@ -287,18 +287,7 @@ void RuleEngine::handleSwappingResult(SwappingResult *result) {
   runtime->assignMessageToRuleSet(shared_rule_tag, message_content);
 }
 
-void RuleEngine::handleConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) {
-  addAllocatedQNICs(msg);
-  stopRuleSetExecution(msg);
-}
-
-void RuleEngine::addAllocatedQNICs(InternalConnectionTeardownMessage *msg) {
-  auto ruleset_id = msg->getRuleSet_id();
-  auto num_of_qnics = msg->getStack_of_QNICAddressesArraySize();
-  for (auto index = 0; index < num_of_qnics; index++) {
-    ruleset_id_qnic_addresses_map[ruleset_id].push_back(msg->getStack_of_QNICAddresses(index));
-  }
-}
+void RuleEngine::handleConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) { stopRuleSetExecution(msg); }
 
 void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
   auto ruleset_id = msg->getRuleSet_id();
