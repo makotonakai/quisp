@@ -305,29 +305,6 @@ void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
   runtimes.stopById(ruleset_id);
 }
 
-void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id) {
-  auto node_addresses_along_path = (std::vector<int>)ruleset_id_node_addresses_along_path_map[ruleset_id];
-  for (int index = 0; index < node_addresses_along_path.size(); index++) {
-    auto pkt = new ConnectionTeardownMessage();
-    pkt->setSrcAddr(parentAddress);
-    pkt->setDestAddr(node_addresses_along_path.at(index));
-    pkt->setActual_srcAddr(parentAddress);
-    pkt->setActual_destAddr(node_addresses_along_path.at(index));
-    if (index == 0) {
-      pkt->setLAU_destAddr_left(-1);
-    } else {
-      pkt->setLAU_destAddr_left(node_addresses_along_path.at(index - 1));
-    }
-    if (index == node_addresses_along_path.size() - 1) {
-      pkt->setLAU_destAddr_right(-1);
-    } else {
-      pkt->setLAU_destAddr_right(node_addresses_along_path.at(index + 1));
-    }
-    pkt->setRuleSet_id(ruleset_id);
-    send(pkt, "RouterPort$o");
-  }
-}
-
 void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
   if (msg->getLAU_destAddr_left() != -1) {
     LinkAllocationUpdateMessage *pkt1 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");

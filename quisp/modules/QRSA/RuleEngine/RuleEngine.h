@@ -85,7 +85,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void handleConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
-  void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
   void sendLinkAllocationUpdateMessage(messages::LinkAllocationUpdateNotifier *msg);
   void storeInfoAboutIncomingLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
   void negotiateNextLinkAllocationPolicy(int src_addr);

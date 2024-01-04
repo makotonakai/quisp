@@ -207,38 +207,6 @@ TEST_F(RuleEngineTest, freeConsumedResource) {
   delete rule_engine->qnic_store.get();
 }
 
-TEST_F(RuleEngineTest, sendConnectionTeardownMessageForRuleSet) {
-  auto* sim = prepareSimulation();
-  auto* routing_daemon = new MockRoutingDaemon();
-  auto* hardware_monitor = new MockHardwareMonitor();
-  auto* rule_engine = new RuleEngineTestTarget{nullptr, routing_daemon, hardware_monitor, realtime_controller};
-  sim->registerComponent(rule_engine);
-  sim->setContext(rule_engine);
-  rule_engine->callInitialize();
-
-  auto ruleset_id = 1;
-  rule_engine->ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(5);
-  rule_engine->ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(1);
-
-  rule_engine->sendConnectionTeardownMessageForRuleSet(ruleset_id);
-  auto gate = rule_engine->toRouterGate;
-  EXPECT_EQ(gate->messages.size(), 2);
-
-  auto pkt1 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[0]);
-  EXPECT_EQ(pkt1->getSrcAddr(), 5);
-  EXPECT_EQ(pkt1->getDestAddr(), 5);
-  EXPECT_EQ(pkt1->getActual_srcAddr(), 5);
-  EXPECT_EQ(pkt1->getActual_destAddr(), 5);
-  EXPECT_EQ(pkt1->getRuleSet_id(), 1);
-
-  auto pkt2 = dynamic_cast<ConnectionTeardownMessage*>(gate->messages[1]);
-  EXPECT_EQ(pkt2->getSrcAddr(), 5);
-  EXPECT_EQ(pkt2->getDestAddr(), 1);
-  EXPECT_EQ(pkt2->getActual_srcAddr(), 5);
-  EXPECT_EQ(pkt2->getActual_destAddr(), 1);
-  EXPECT_EQ(pkt2->getRuleSet_id(), 1);
-}
-
 // TEST_F(RuleEngineTest, sendBarrierMessage) {
 //   auto* sim = prepareSimulation();
 //   auto* routing_daemon = new MockRoutingDaemon();
