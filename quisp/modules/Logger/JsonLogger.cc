@@ -77,10 +77,8 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
   if (auto* req = dynamic_cast<const quisp::messages::ConnectionTeardownMessage*>(msg)) {
     std::stringstream os;
     os << "\"msg_type\": \"ConnectionTeardownMessage\"";
-    os << ", \"actual_dest_addr\": " << req->getActual_destAddr();
-    os << ", \"actual_src_addr\": " << req->getActual_srcAddr();
-    os << ", \"LAU_destAddr_left\": " << req->getLAU_destAddr_left();
-    os << ", \"LAU_destAddr_right\": " << req->getLAU_destAddr_right();
+    os << ", \"left_node_addr\": " << req->getLeftNodeAddr();
+    os << ", \"right_node_addr\": " << req->getRightNodeAddr();
     os << ", \"ruleset_id\": " << req->getRuleSet_id();
     return os.str();
   }
@@ -117,10 +115,8 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
   if (auto* req = dynamic_cast<const quisp::messages::InternalConnectionTeardownMessage*>(msg)) {
     std::stringstream os;
     os << "\"msg_type\": \"InternalConnectionTeardownMessage\"";
-    os << ", \"actual_dest_addr\": " << req->getActual_destAddr();
-    os << ", \"actual_src_addr\": " << req->getActual_srcAddr();
-    os << ", \"LAU_destAddr_left\": " << req->getLAU_destAddr_left();
-    os << ", \"LAU_destAddr_right\": " << req->getLAU_destAddr_right();
+    os << ", \"left_node_addr\": " << req->getLeftNodeAddr();
+    os << ", \"right_node_addr\": " << req->getRightNodeAddr();
     os << ", \"ruleset_id\": " << req->getRuleSet_id();
     return os.str();
   }
