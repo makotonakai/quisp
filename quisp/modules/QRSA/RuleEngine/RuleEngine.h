@@ -91,7 +91,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void sendBarrierMessage(int src_addr);
   void waitForBellPairGeneration(int src_addr);
   void keepWaitingForBellPairGeneration(messages::WaitMessage *msg);
-  void sendLinkAllocationUpdateMessageForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
   unsigned long getRuleSetIdBySequenceNumber(int sequence_number);

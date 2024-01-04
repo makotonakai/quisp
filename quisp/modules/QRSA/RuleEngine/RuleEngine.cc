@@ -305,35 +305,6 @@ void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
   runtimes.stopById(ruleset_id);
 }
 
-void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
-  if (msg->getLAU_destAddr_left() != -1) {
-    LinkAllocationUpdateMessage *pkt1 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt1->setSrcAddr(msg->getDestAddr());
-    pkt1->setDestAddr(msg->getLAU_destAddr_left());
-    pkt1->setActiveLinkAllocationsArraySize(runtimes.size());
-    auto index = 0;
-    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
-      pkt1->appendActiveLinkAllocation(it->ruleset.id);
-      index += 1;
-    }
-    pkt1->setRandomNumber(rand());
-    send(pkt1, "RouterPort$o");
-  }
-  if (msg->getLAU_destAddr_right() != -1) {
-    LinkAllocationUpdateMessage *pkt2 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt2->setSrcAddr(msg->getDestAddr());
-    pkt2->setDestAddr(msg->getLAU_destAddr_left());
-    pkt2->setActiveLinkAllocationsArraySize(runtimes.size());
-    auto index = 0;
-    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
-      pkt2->appendActiveLinkAllocation(it->ruleset.id);
-      index += 1;
-    }
-    pkt2->setRandomNumber(rand());
-    send(pkt2, "RouterPort$o");
-  }
-}
-
 void RuleEngine::sendLinkAllocationUpdateMessage(LinkAllocationUpdateNotifier *msg) {
   auto src_addr = msg->getSrcAddr();
   auto random_number = rand();
