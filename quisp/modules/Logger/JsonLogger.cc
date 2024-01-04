@@ -79,7 +79,7 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << "\"msg_type\": \"ConnectionTeardownMessage\"";
     os << ", \"left_node_addr\": " << req->getLeftNodeAddr();
     os << ", \"right_node_addr\": " << req->getRightNodeAddr();
-    os << ", \"ruleset_id\": " << req->getRuleSet_id();
+    os << ", \"ruleset_id\": " << req->getRuleSetId();
     return os.str();
   }
 
@@ -117,7 +117,7 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << "\"msg_type\": \"InternalConnectionTeardownMessage\"";
     os << ", \"left_node_addr\": " << req->getLeftNodeAddr();
     os << ", \"right_node_addr\": " << req->getRightNodeAddr();
-    os << ", \"ruleset_id\": " << req->getRuleSet_id();
+    os << ", \"ruleset_id\": " << req->getRuleSetId();
     return os.str();
   }
 
