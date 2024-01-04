@@ -141,8 +141,6 @@ void ConnectionManager::handleMessage(cMessage *msg) {
 
   if (auto *pk = dynamic_cast<ConnectionTeardownMessage *>(msg)) {
     // Connection is torn down only if the node has not received the ConnectionTeardownMessage If it has already received it, the incoming message is ignored.
-    int src_addr = pk->getActual_srcAddr();
-    int dest_addr = pk->getActual_destAddr();
 
     // if (my_address == dest_addr) {
     //   if (isQnicBusy(inbound_qnic_addr)) {
@@ -215,12 +213,10 @@ void ConnectionManager::storeInternalConnectionTeardownMessage(ConnectionTeardow
   InternalConnectionTeardownMessage *pk_internal = new InternalConnectionTeardownMessage("InternalConnectionTeardownMessage");
   pk_internal->setSrcAddr(my_address);
   pk_internal->setDestAddr(my_address);
-  pk_internal->setActual_srcAddr(my_address);
-  pk_internal->setActual_destAddr(my_address);
   pk_internal->setKind(5);
   pk_internal->setRuleSet_id(pk->getRuleSet_id());
-  pk_internal->setLAU_destAddr_left(pk->getLAU_destAddr_left());
-  pk_internal->setLAU_destAddr_right(pk->getLAU_destAddr_right());
+  pk_internal->setLeftNodeAddr(pk->getLeftNodeAddr());
+  pk_internal->setRightNodeAddr(pk->getLeftNodeAddr());
   pk_internal->setStack_of_QNICAddressesArraySize(reserved_qnics.size());
   for (auto index = 0; index < reserved_qnics.size(); index++) {
     pk_internal->setStack_of_QNICAddresses(index, reserved_qnics.at(index));
