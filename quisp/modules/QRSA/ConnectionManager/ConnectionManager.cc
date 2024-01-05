@@ -111,7 +111,6 @@ void ConnectionManager::handleMessage(cMessage *msg) {
       auto ruleset_id = resp->getRuleSet_id();
       auto node_addresses = ruleset_id_node_addresses_along_path_map[ruleset_id];
 
-      storeInfoAboutNodeAddressesAlongPath(resp);
       storeRuleSetForApplication(resp);
     } else if (initiator_addr == my_address) {
       // this node is not a swapper
