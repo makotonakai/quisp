@@ -136,7 +136,7 @@ void RuleEngine::handleMessage(cMessage *msg) {
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
-    sendLinkAllocationUpdateMessage(pkt);
+    sendLinkAllocationUpdateMessages();
     auto src_addr = pkt->getSrcAddr();
     auto neighbor_addresses = node_address_neighbor_addresses_map[src_addr];
     for (auto neighbor_address : neighbor_addresses) {
@@ -289,12 +289,12 @@ void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
   runtimes.stopById(ruleset_id);
 }
 
-void RuleEngine::sendLinkAllocationUpdateMessage(LinkAllocationUpdateNotifier *msg) {
+void RuleEngine::sendLinkAllocationUpdateMessages() {
   auto src_addr = msg->getSrcAddr();
   auto random_number = rand();
   node_address_random_number_map[src_addr] = random_number;
 
-  auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
+  auto auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
   for (auto i = 0; i < num_neighbors; i++) {
     node_address_neighbor_addresses_map[src_addr].push_back(msg->getStack_of_NeighboringQNodeIndices(i));
   }
