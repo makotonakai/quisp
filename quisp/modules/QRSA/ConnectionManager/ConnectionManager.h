@@ -93,13 +93,13 @@ class ConnectionManager : public IConnectionManager, public Logger::LoggerBase {
   void scheduleRequestRetry(int qnic_address);
   void popApplicationRequest(int qnic_address);
 
+  void sendConnectionTeardownMessage(unsigned long ruleset_id);
   void storeInternalConnectionTeardownMessage(messages::ConnectionTeardownMessage *pk);
 
   void storeRuleSetForApplication(messages::ConnectionSetupResponse *pk);
   void storeRuleSet(messages::ConnectionSetupResponse *pk);
   void storeInfoAboutNodeAddressesAlongPath(messages::ConnectionSetupResponse *pk);
   void generateListOfNeighboringNodes(messages::ConnectionSetupResponse *res);
-  void NotifyLinkAllocationUpdate(messages::ConnectionSetupResponse *pk);
 
   void initiator_reject_req_handler(messages::RejectConnectionSetupRequest *pk);
   void responder_reject_req_handler(messages::RejectConnectionSetupRequest *pk);
@@ -115,7 +115,6 @@ class ConnectionManager : public IConnectionManager, public Logger::LoggerBase {
 
   unsigned long createUniqueId() override;
   int getRuleSetIndexByOwnerAddress(std::map<int, nlohmann::json> rulesets, int owner_address);
-  std::vector<int> generateNodeAddressesAlongPath(std::map<int, json> rulesets);
   std::map<int, std::pair<quisp::modules::QNIC, quisp::modules::QNIC>> generateListOfQNICs(messages::ConnectionSetupRequest *req);
 };
 

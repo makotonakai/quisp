@@ -122,7 +122,6 @@ void ConnectionManager::handleMessage(cMessage *msg) {
       storeRuleSet(resp);
     }
 
-    NotifyLinkAllocationUpdate(resp);
     delete msg;
     return;
   }
@@ -139,31 +138,37 @@ void ConnectionManager::handleMessage(cMessage *msg) {
     return;
   }
 
-  if (auto *pk = dynamic_cast<ConnectionTeardownMessage *>(msg)) {
-    // Connection is torn down only if the node has not received the ConnectionTeardownMessage If it has already received it, the incoming message is ignored.
-
-    // if (my_address == dest_addr) {
-    //   if (isQnicBusy(inbound_qnic_addr)) {
-    //     releaseQnic(inbound_qnic_addr);
-    //   }
-    // } else if (my_address == src_addr) {
-    //   if (isQnicBusy(outbound_qnic_addr)) {
-    //     releaseQnic(outbound_qnic_addr);
-    //   }
-    // } else {
-    //   if (isQnicBusy(inbound_qnic_addr)) {
-    //     releaseQnic(inbound_qnic_addr);
-    //   }
-    //   if (isQnicBusy(outbound_qnic_addr)) {
-    //     releaseQnic(outbound_qnic_addr);
-    //   }
-    // }
-    // available_qnics = {};
-
-    storeInternalConnectionTeardownMessage(pk);
-    delete msg;
-    return;
+  if (auto *pk = dynamic_cast<ConnectionTeardownNotifier *>(msg)) {
+    for (int i = 0; i < pk->getRuleSetIdCount(); i++) {
+      auto ruleset_id = pk->getRuleSetIds(i);
+    }
   }
+
+  //   if (auto *pk = dynamic_cast<ConnectionTeardownMessage *>(msg)) {
+  //     // Connection is torn down only if the node has not received the ConnectionTeardownMessage If it has already received it, the incoming message is ignored.
+
+  //     // if (my_address == dest_addr) {
+  //     //   if (isQnicBusy(inbound_qnic_addr)) {
+  //     //     releaseQnic(inbound_qnic_addr);
+  //     //   }
+  //     // } else if (my_address == src_addr) {
+  //     //   if (isQnicBusy(outbound_qnic_addr)) {
+  //     //     releaseQnic(outbound_qnic_addr);
+  //     //   }
+  //     // } else {
+  //     //   if (isQnicBusy(inbound_qnic_addr)) {
+  //     //     releaseQnic(inbound_qnic_addr);
+  //     //   }
+  //     //   if (isQnicBusy(outbound_qnic_addr)) {
+  //     //     releaseQnic(outbound_qnic_addr);
+  //     //   }
+  //     // }
+  //     // available_qnics = {};
+
+  //     storeInternalConnectionTeardownMessage(pk);
+  //     delete msg;
+  //     return;
+  //   }
 }
 
 PurType ConnectionManager::parsePurType(const std::string &pur_type) {
@@ -214,13 +219,9 @@ void ConnectionManager::storeInternalConnectionTeardownMessage(ConnectionTeardow
   pk_internal->setSrcAddr(my_address);
   pk_internal->setDestAddr(my_address);
   pk_internal->setKind(5);
-  pk_internal->setRuleSet_id(pk->getRuleSet_id());
+  pk_internal->setRuleSetId(pk->getRuleSetId());
   pk_internal->setLeftNodeAddr(pk->getLeftNodeAddr());
-  pk_internal->setRightNodeAddr(pk->getLeftNodeAddr());
-  pk_internal->setStack_of_QNICAddressesArraySize(reserved_qnics.size());
-  for (auto index = 0; index < reserved_qnics.size(); index++) {
-    pk_internal->setStack_of_QNICAddresses(index, reserved_qnics.at(index));
-  }
+  pk_internal->setRightNodeAddr(pk->getRightNodeAddr());
   send(pk_internal, "RouterPort$o");
 }
 
@@ -323,10 +324,7 @@ void ConnectionManager::respondToRequest(ConnectionSetupRequest *req) {
   auto ruleset_id = createUniqueId();
   ruleset_gen::RuleSetGenerator ruleset_gen{my_address};
   auto rulesets = ruleset_gen.generateRuleSets(req, ruleset_id);
-
-  auto all_node_addresses_along_path = generateNodeAddressesAlongPath(rulesets);
-  ruleset_id_node_addresses_along_path_map[ruleset_id] = all_node_addresses_along_path;
-  auto initiator_address = ruleset_id_node_addresses_along_path_map[ruleset_id][0];
+  auto initiator_address = req->getActual_srcAddr();
 
   // distribute rulesets to each qnode in the path
   for (auto [owner_address, rs] : rulesets) {
@@ -342,16 +340,14 @@ void ConnectionManager::respondToRequest(ConnectionSetupRequest *req) {
     pkt->setApplication_type(0);
     pkt->setKind(2);
     send(pkt, "RouterPort$o");
+
+    if (ruleset_id_node_addresses_along_path_map.find(ruleset_id) == ruleset_id_node_addresses_along_path_map.end()) {
+      ruleset_id_node_addresses_along_path_map[ruleset_id] = {owner_address};
+    } else {
+      ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(owner_address);
+    }
   }
   // reserveQnic(qnic_addr);
-}
-
-std::vector<int> ConnectionManager::generateNodeAddressesAlongPath(std::map<int, json> rulesets) {
-  std::vector<int> node_addresses_along_path;
-  for (auto [owner_address, rs] : rulesets) {
-    node_addresses_along_path.push_back(owner_address);
-  }
-  return node_addresses_along_path;
 }
 
 int ConnectionManager::getRuleSetIndexByOwnerAddress(std::map<int, nlohmann::json> rulesets, int owner_address) {
@@ -435,21 +431,6 @@ void ConnectionManager::generateListOfNeighboringNodes(ConnectionSetupResponse *
     ruleset_id_neighboring_node_addresses_map[ruleset_id].push_back(outbound_info->neighbor_address);
     ruleset_id_neighboring_node_addresses_map[ruleset_id].push_back(inbound_info->neighbor_address);
   }
-}
-
-void ConnectionManager::NotifyLinkAllocationUpdate(ConnectionSetupResponse *res) {
-  generateListOfNeighboringNodes(res);
-  auto ruleset_id = res->getRuleSet_id();
-  auto neighboring_node_addresses = ruleset_id_neighboring_node_addresses_map[ruleset_id];
-  LinkAllocationUpdateNotifier *pkt = new LinkAllocationUpdateNotifier("LinkAllocationUpdateNotifier");
-  pkt->setSrcAddr(my_address);
-  pkt->setDestAddr(my_address);
-  pkt->setRuleSetId(ruleset_id);
-  pkt->setStack_of_NeighboringQNodeIndicesArraySize(neighboring_node_addresses.size());
-  for (auto i = 0; i < neighboring_node_addresses.size(); i++) {
-    pkt->setStack_of_NeighboringQNodeIndices(i, neighboring_node_addresses.at(i));
-  }
-  send(pkt, "RouterPort$o");
 }
 
 // This is not good way. This property should be held in qnic property.
@@ -606,6 +587,32 @@ void ConnectionManager::scheduleRequestRetry(int qnic_address) {
   EV << "schedule from retry" << endl;
   scheduleAt(simTime() + backoff, request_send_timing[qnic_address]);
   return;
+}
+
+void ConnectionManager::sendConnectionTeardownMessage(unsigned long ruleset_id) {
+  auto node_address_along_path = ruleset_id_node_addresses_along_path_map[ruleset_id];
+  for (auto i = 0; i < node_address_along_path.size(); i++) {
+    int left_node_address;
+    int right_node_address;
+    auto node_address = node_address_along_path[i];
+    if (i == 0) {
+      left_node_address = -1;
+      right_node_address = node_address_along_path[i + 1];
+    } else if (i == node_address_along_path.size() - 1) {
+      left_node_address = node_address_along_path[i - 1];
+      right_node_address = -1;
+    } else {
+      left_node_address = node_address_along_path[i - 1];
+      right_node_address = node_address_along_path[i + 1];
+    }
+
+    ConnectionTeardownMessage *pkt = new ConnectionTeardownMessage("ConnectionTeardownMessage");
+    pkt->setSrcAddr(my_address);
+    pkt->setDestAddr(node_address);
+    pkt->setLeftNodeAddr(left_node_address);
+    pkt->setRightNodeAddr(right_node_address);
+    pkt->setRuleSetId(ruleset_id);
+  }
 }
 
 }  // namespace quisp::modules
