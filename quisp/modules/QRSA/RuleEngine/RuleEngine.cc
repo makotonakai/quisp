@@ -135,11 +135,6 @@ void RuleEngine::handleMessage(cMessage *msg) {
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
-  } else if (auto *pkt = dynamic_cast<InternalNodeAddressesAlongPathForwarding *>(msg)) {
-    auto ruleset_id = pkt->getRuleSet_id();
-    for (auto index = 0; index < pkt->getNode_addresses_along_pathArraySize(); index++) {
-      ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(pkt->getNode_addresses_along_path(index));
-    }
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
     sendLinkAllocationUpdateMessage(pkt);
     auto src_addr = pkt->getSrcAddr();

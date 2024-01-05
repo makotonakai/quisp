@@ -100,10 +100,6 @@ void Router::handleMessage(cMessage *msg) {
     bubble("Internal RuleSet Forwarding Application packet received");
     send(pk, "rePort$o");
     return;
-  } else if (dest_addr == my_address && dynamic_cast<InternalNodeAddressesAlongPathForwarding *>(msg)) {
-    bubble("Internal Node Addresses Along Path Forwarding packet received");
-    send(pk, "rePort$o");
-    return;
   } else if (dest_addr == my_address && dynamic_cast<ConnectionTeardownMessage *>(msg)) {
     bubble("Connection Teardown packet received");
     send(pk, "cmPort$o");

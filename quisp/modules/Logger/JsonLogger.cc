@@ -83,16 +83,6 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
-  if (auto* req = dynamic_cast<const quisp::messages::InternalNodeAddressesAlongPathForwarding*>(msg)) {
-    std::stringstream os;
-    os << "\"msg_type\": \"InternalNodeAddressesAlongPathForwarding\"";
-    for (auto i = 0; i < req->getNode_addresses_along_pathArraySize(); i++) {
-      os << ", \"node_address_along_path\": " << req->getNode_addresses_along_path(i);
-    }
-    os << ", \"ruleset_id\": " << req->getRuleSet_id();
-    return os.str();
-  }
-
   if (auto* req = dynamic_cast<const quisp::messages::InternalRuleSetForwarding_Application*>(msg)) {
     std::stringstream os;
     os << "\"msg_type\": \"InternalRuleSetForwarding_Application\"";

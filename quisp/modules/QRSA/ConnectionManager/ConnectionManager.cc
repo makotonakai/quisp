@@ -276,20 +276,6 @@ void ConnectionManager::rejectRequest(ConnectionSetupRequest *req) {
   }
 }
 
-void ConnectionManager::storeInfoAboutNodeAddressesAlongPath(ConnectionSetupResponse *res) {
-  InternalNodeAddressesAlongPathForwarding *pkt = new InternalNodeAddressesAlongPathForwarding("InternalNodeAddressAlongPath;Forwarding");
-  pkt->setSrcAddr(my_address);
-  pkt->setDestAddr(my_address);
-  auto ruleset_id = res->getRuleSet_id();
-  pkt->setRuleSet_id(ruleset_id);
-  auto node_addresses = ruleset_id_node_addresses_along_path_map[ruleset_id];
-  pkt->setNode_addresses_along_pathArraySize(node_addresses.size());
-  for (auto index = 0; index < node_addresses.size(); index++) {
-    pkt->setNode_addresses_along_path(index, node_addresses.at(index));
-  }
-  send(pkt, "RouterPort$o");
-}
-
 /**
  * This function is called to handle the ConnectionSetupRequest at the responder.
  * This is where much of the work happens, and there is the potential for new value
