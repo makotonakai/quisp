@@ -290,7 +290,7 @@ void RuleEngine::handleSwappingResult(SwappingResult *result) {
 void RuleEngine::handleConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) { stopRuleSetExecution(msg); }
 
 void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
-  auto ruleset_id = msg->getRuleSet_id();
+  auto ruleset_id = msg->getRuleSetId();
   runtimes.stopById(ruleset_id);
 }
 
