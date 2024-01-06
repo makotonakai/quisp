@@ -129,32 +129,37 @@ void RuleEngine::handleMessage(cMessage *msg) {
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
+    sendLinkAllocationUpdateMessages();
   } else if (auto *pkt = dynamic_cast<InternalRuleSetForwarding_Application *>(msg)) {
     if (pkt->getApplication_type() != 0) error("This application is not recognized yet");
     auto serialized_ruleset = pkt->getRuleSet();
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
-  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
+
     sendLinkAllocationUpdateMessages();
-    auto src_addr = pkt->getSrcAddr();
-    auto neighbor_addresses = node_address_neighbor_addresses_map[src_addr];
-    for (auto neighbor_address : neighbor_addresses) {
-      auto lau_sent = node_address_lau_sent_map[neighbor_address];
-      auto lau_received = node_address_lau_received_map[neighbor_address];
-      if (lau_sent && lau_received) {
-        negotiateNextLinkAllocationPolicy(neighbor_address);
-        auto bell_pair_exist = bellPairExist();
-        auto barrier_sent = node_address_barrier_sent_map[src_addr];
-        if (bell_pair_exist && !barrier_sent) {
-          sendBarrierMessage(neighbor_address);
-        } else {
-          waitForBellPairGeneration(neighbor_address);
+
+    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+      for (auto partner_addr : it->partners) {
+        auto lau_sent = true;
+        auto lau_received = false;
+        if (node_address_lau_received_map.find(partner_addr.val) != node_address_lau_received_map.end()) {
+          lau_received = node_address_lau_received_map[partner_addr.val];
+        }
+        if (lau_sent && lau_received) {
+          negotiateNextLinkAllocationPolicy(partner_addr.val);
+          auto bell_pair_exist = bellPairExist();
+          auto barrier_sent = node_address_barrier_sent_map[partner_addr.val];
+          if (bell_pair_exist && !barrier_sent) {
+            sendBarrierMessage(partner_addr.val);
+          } else {
+            waitForBellPairGeneration(partner_addr.val);
+          }
         }
       }
     }
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
-    handleConnectionTeardownMessage(pkt);
+    handleInternalConnectionTeardownMessage(pkt);
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateMessage *>(msg)) {
     storeInfoAboutIncomingLinkAllocationUpdateMessage(pkt);
     auto src_addr = pkt->getSrcAddr();
@@ -187,19 +192,34 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto barrier_received = node_address_barrier_received_map[src_addr];
     if (barrier_sent && barrier_received) {
       negotiateNextSequenceNumber(src_addr);
-      auto sequence_number = node_address_sequence_number_map[src_addr];
-      for (int i = 0; i < number_of_qnics; i++) {
-        allocateBellPairs(QNIC_E, i, sequence_number);
-      }
-      for (int i = 0; i < number_of_qnics_r; i++) {
-        allocateBellPairs(QNIC_R, i, sequence_number);
-      }
-      for (int i = 0; i < number_of_qnics_rp; i++) {
-        allocateBellPairs(QNIC_RP, i, sequence_number);
-      }
-      executeAllRuleSets();
     }
   }
+
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      if (node_address_sequence_number_map.find(partner_address.val) != node_address_sequence_number_map.end()) {
+        auto sequence_number = node_address_sequence_number_map[partner_address.val];
+        for (int i = 0; i < number_of_qnics; i++) {
+          allocateBellPairs(QNIC_E, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_r; i++) {
+          allocateBellPairs(QNIC_R, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_rp; i++) {
+          allocateBellPairs(QNIC_RP, i, sequence_number);
+        }
+      }
+    }
+  }
+  executeAllRuleSets();
+  auto index = 0;
+  std::cout << "[";
+  for (auto const &[key, val] : runtime_index_bell_pair_number_map) {
+    if (index != 0) std::cout << ", ";
+    std::cout << val;
+    index += 1;
+  }
+  std::cout << "]" << std::endl;
   delete msg;
 }
 
@@ -282,7 +302,7 @@ void RuleEngine::handleSwappingResult(SwappingResult *result) {
   runtime->assignMessageToRuleSet(shared_rule_tag, message_content);
 }
 
-void RuleEngine::handleConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) { stopRuleSetExecution(msg); }
+void RuleEngine::handleInternalConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) { stopRuleSetExecution(msg); }
 
 void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
   auto ruleset_id = msg->getRuleSetId();
@@ -290,37 +310,60 @@ void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
 }
 
 void RuleEngine::sendLinkAllocationUpdateMessages() {
-  auto src_addr = msg->getSrcAddr();
-  auto random_number = rand();
-  node_address_random_number_map[src_addr] = random_number;
-
-  auto auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
-  for (auto i = 0; i < num_neighbors; i++) {
-    node_address_neighbor_addresses_map[src_addr].push_back(msg->getStack_of_NeighboringQNodeIndices(i));
+  std::set<int> partner_addresses;
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      partner_addresses.insert(partner_address.val);
+    }
   }
 
-  auto neighbor_addresses = node_address_neighbor_addresses_map[src_addr];
-  for (auto neighbor_address : neighbor_addresses) {
-    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt->setSrcAddr(parentAddress);
-    pkt->setDestAddr(neighbor_address);
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      std::vector<int> active_link_allocations;
+      if (node_address_active_link_allocations_map.find(partner_address.val) != node_address_active_link_allocations_map.end()) {
+        for (auto active_link_allocation : node_address_active_link_allocations_map[partner_address.val]) {
+          active_link_allocations.push_back(active_link_allocation);
+        }
+      }
 
-    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
-      if (it->is_active) {
-        pkt->appendActiveLinkAllocation(it->ruleset.id);
-        node_address_active_link_allocations_map[neighbor_address].push_back(it->ruleset.id);
-      } else {
-        pkt->appendNextLinkAllocation(it->ruleset.id);
-        node_address_next_link_allocations_map[neighbor_address].push_back(it->ruleset.id);
+      std::vector<int> next_link_allocations;
+      if (node_address_next_link_allocations_map.find(partner_address.val) != node_address_next_link_allocations_map.end()) {
+        for (auto next_link_allocation : node_address_next_link_allocations_map[partner_address.val]) {
+          next_link_allocations.push_back(next_link_allocation);
+        }
+      }
+
+      if (it->is_active && std::find(active_link_allocations.begin(), active_link_allocations.end(), it->ruleset.id) == active_link_allocations.end()) {
+        node_address_active_link_allocations_map[partner_address.val].push_back(it->ruleset.id);
+      }
+      if (!it->is_active && std::find(next_link_allocations.begin(), next_link_allocations.end(), it->ruleset.id) == next_link_allocations.end()) {
+        node_address_next_link_allocations_map[partner_address.val].push_back(it->ruleset.id);
       }
     }
+  }
+
+  for (auto partner_address : partner_addresses) {
+    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+    pkt->setSrcAddr(parentAddress);
+    pkt->setDestAddr(partner_address);
+
+    auto active_link_allocations = node_address_active_link_allocations_map[partner_address];
+    for (auto active_link_allocation : active_link_allocations) {
+      pkt->appendActiveLinkAllocation(active_link_allocation);
+    }
+
+    auto next_link_allocations = node_address_next_link_allocations_map[partner_address];
+    for (auto next_link_allocation : next_link_allocations) {
+      pkt->appendNextLinkAllocation(next_link_allocation);
+    }
+
+    auto random_number = rand();
+    node_address_random_number_map[partner_address] = random_number;
 
     pkt->setRandomNumber(random_number);
     send(pkt, "RouterPort$o");
 
-    for (auto neighbor_address : neighbor_addresses) {
-      node_address_lau_sent_map[neighbor_address] = true;
-    }
+    node_address_lau_sent_map[partner_address] = true;
   }
 }
 
@@ -422,8 +465,6 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
       bell_pair_num += 1;
     }
 
-    std::map<int, int> runtime_index_bell_pair_number_map;
-
     auto number = 0;
     for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
       auto sequence_number_qubit_record = it->second;
@@ -444,15 +485,6 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
       }
       number += 1;
     }
-
-    auto index = 0;
-    std::cout << "[";
-    for (auto const &[key, val] : runtime_index_bell_pair_number_map) {
-      if (index != 0) std::cout << ", ";
-      std::cout << val;
-      index += 1;
-    }
-    std::cout << "]" << std::endl;
   }
 }
 
