@@ -140,34 +140,37 @@ void ConnectionManager::handleMessage(cMessage *msg) {
   if (auto *pk = dynamic_cast<ConnectionTeardownNotifier *>(msg)) {
     for (int i = 0; i < pk->getRuleSetIdCount(); i++) {
       auto ruleset_id = pk->getRuleSetIds(i);
+      sendConnectionTeardownMessage(ruleset_id);
     }
+    delete msg;
+    return;
   }
 
-  //   if (auto *pk = dynamic_cast<ConnectionTeardownMessage *>(msg)) {
-  //     // Connection is torn down only if the node has not received the ConnectionTeardownMessage If it has already received it, the incoming message is ignored.
+  if (auto *pk = dynamic_cast<ConnectionTeardownMessage *>(msg)) {
+    //     // Connection is torn down only if the node has not received the ConnectionTeardownMessage If it has already received it, the incoming message is ignored.
 
-  //     // if (my_address == dest_addr) {
-  //     //   if (isQnicBusy(inbound_qnic_addr)) {
-  //     //     releaseQnic(inbound_qnic_addr);
-  //     //   }
-  //     // } else if (my_address == src_addr) {
-  //     //   if (isQnicBusy(outbound_qnic_addr)) {
-  //     //     releaseQnic(outbound_qnic_addr);
-  //     //   }
-  //     // } else {
-  //     //   if (isQnicBusy(inbound_qnic_addr)) {
-  //     //     releaseQnic(inbound_qnic_addr);
-  //     //   }
-  //     //   if (isQnicBusy(outbound_qnic_addr)) {
-  //     //     releaseQnic(outbound_qnic_addr);
-  //     //   }
-  //     // }
-  //     // available_qnics = {};
+    //     // if (my_address == dest_addr) {
+    //     //   if (isQnicBusy(inbound_qnic_addr)) {
+    //     //     releaseQnic(inbound_qnic_addr);
+    //     //   }
+    //     // } else if (my_address == src_addr) {
+    //     //   if (isQnicBusy(outbound_qnic_addr)) {
+    //     //     releaseQnic(outbound_qnic_addr);
+    //     //   }
+    //     // } else {
+    //     //   if (isQnicBusy(inbound_qnic_addr)) {
+    //     //     releaseQnic(inbound_qnic_addr);
+    //     //   }
+    //     //   if (isQnicBusy(outbound_qnic_addr)) {
+    //     //     releaseQnic(outbound_qnic_addr);
+    //     //   }
+    //     // }
+    //     // available_qnics = {};
 
-  //     storeInternalConnectionTeardownMessage(pk);
-  //     delete msg;
-  //     return;
-  //   }
+    storeInternalConnectionTeardownMessage(pk);
+    delete msg;
+    return;
+  }
 }
 
 PurType ConnectionManager::parsePurType(const std::string &pur_type) {
@@ -597,6 +600,7 @@ void ConnectionManager::sendConnectionTeardownMessage(unsigned long ruleset_id) 
     pkt->setLeftNodeAddr(left_node_address);
     pkt->setRightNodeAddr(right_node_address);
     pkt->setRuleSetId(ruleset_id);
+    send(pkt, "RouterPort$o");
   }
 }
 
