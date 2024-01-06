@@ -1,4 +1,5 @@
 #include "RuntimeManager.h"
+#include <omnetpp/simtime.h>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
@@ -25,11 +26,17 @@ std::vector<Runtime>::iterator RuntimeManager::findById(unsigned long long rules
 }
 
 void RuntimeManager::exec() {
+  terminated_ruleset_id_list.clear();
   for (auto it = runtimes.begin(); it != runtimes.end();) {
     auto ruleset_id = it->ruleset.id;
+    if (!it->is_active && !it->is_terminated) {
+      it->is_active = true;
+    }
     it->exec();
     std::cout << it->return_code << std::endl;
-    if (it->is_terminated) {
+    if (it->is_active && it->is_terminated) {
+      it->is_active = false;
+      std::cout << "Simulation time: " << simTime() << std::endl;
       terminated_ruleset_id_list.push_back(ruleset_id);
       it = runtimes.erase(it);
     } else {
@@ -42,6 +49,9 @@ std::vector<unsigned long> RuntimeManager::getTerminatedRuleSetIDs() { return te
 
 void RuntimeManager::stopById(unsigned long long ruleset_id) {
   auto it = findById(ruleset_id);
+  if (it->is_active) {
+    it->is_active = false;
+  }
   it->is_terminated = true;
 }
 std::vector<QNodeAddr> RuntimeManager::findPartnersById(unsigned long long ruleset_id) {
