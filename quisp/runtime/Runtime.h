@@ -478,6 +478,13 @@ class Runtime {
   bool is_terminated = false;
 
   /**
+   * @brief This flag is enabled after the allocated link Bell pairs are released.
+   *
+   * If this flag is true, all the allocated link Bell pairs are released from this Runtime.
+   */
+  bool link_released = false;
+
+  /**
    * @brief The GET_QUBIT instruction sets this flag. if it's true, the GET_QUBIT
    * instruction successfully found the qubit. if not, the instruction cannot
    * find qubit.
