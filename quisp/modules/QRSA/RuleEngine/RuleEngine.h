@@ -132,6 +132,8 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::map<int, int> node_address_sequence_number_map;
   std::map<int, int> runtime_index_bell_pair_number_map;
   std::map<int, int> terminated_runtime_index_bell_pair_number_map;
+  std::map<int, unsigned long> sequence_number_ruleset_id_map;
+  std::map<int, unsigned long> sequence_number_runtime_index_map;
 };
 
 Define_Module(RuleEngine);
