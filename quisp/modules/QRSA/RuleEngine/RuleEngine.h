@@ -82,6 +82,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
 
   void freeConsumedResource(int qnic_index, IStationaryQubit *qubit, QNIC_type qnic_type);
   void allocateBellPairs(int qnic_type, int qnic_index, int first_sequence_number);
+  void releaseBellPairs(int qnic_type, int qnic_index, int first_sequence_number);
   void handleInternalConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
   void sendLinkAllocationUpdateMessages();
@@ -130,6 +131,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::map<int, int> node_address_incoming_sequence_number_map;
   std::map<int, int> node_address_sequence_number_map;
   std::map<int, int> runtime_index_bell_pair_number_map;
+  std::map<int, int> terminated_runtime_index_bell_pair_number_map;
 };
 
 Define_Module(RuleEngine);

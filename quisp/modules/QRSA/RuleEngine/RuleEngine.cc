@@ -302,7 +302,26 @@ void RuleEngine::handleSwappingResult(SwappingResult *result) {
   runtime->assignMessageToRuleSet(shared_rule_tag, message_content);
 }
 
-void RuleEngine::handleInternalConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) { stopRuleSetExecution(msg); }
+void RuleEngine::handleInternalConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) {
+  stopRuleSetExecution(msg);
+  auto terminated_runtimes = runtimes.getTerminatedRuntimes();
+  for (auto it = terminated_runtimes.begin(); it != terminated_runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      if (node_address_sequence_number_map.find(partner_address.val) != node_address_sequence_number_map.end()) {
+        auto sequence_number = node_address_sequence_number_map[partner_address.val];
+        for (int i = 0; i < number_of_qnics; i++) {
+          releaseBellPairs(QNIC_E, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_r; i++) {
+          releaseBellPairs(QNIC_R, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_rp; i++) {
+          releaseBellPairs(QNIC_RP, i, sequence_number);
+        }
+      }
+    }
+  }
+}
 
 void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
   auto ruleset_id = msg->getRuleSetId();
@@ -481,6 +500,52 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
           } else {
             runtime_index_bell_pair_number_map[runtime_index] = runtime_index_bell_pair_number_map[runtime_index] + 1;
           }
+        }
+      }
+      number += 1;
+    }
+  }
+}
+
+void RuleEngine::releaseBellPairs(int qnic_type, int qnic_index, int first_sequence_number) {
+  std::map<int, std::vector<int>> partner_addr_terminated_runtime_indices_map;
+  auto index = 0;
+  auto terminated_runtimes = runtimes.getTerminatedRuntimes();
+  for (auto it = terminated_runtimes.begin(); it != terminated_runtimes.end(); ++it) {
+    auto partners = it->partners;
+    for (auto partner : partners) {
+      partner_addr_terminated_runtime_indices_map[partner.val].push_back(index);
+    }
+    index += 1;
+  }
+
+  for (const auto &[partner_addr, _] : partner_addr_terminated_runtime_indices_map) {
+    auto terminated_runtime_indices = partner_addr_terminated_runtime_indices_map[partner_addr];
+    auto bell_pair_range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr);
+
+    auto bell_pair_num = 0;
+    for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
+      bell_pair_num += 1;
+    }
+
+    auto number = 0;
+    for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
+      auto sequence_number_qubit_record = it->second;
+      auto sequence_number = sequence_number_qubit_record.first;
+      if (first_sequence_number <= sequence_number) {
+        auto qubit_record = sequence_number_qubit_record.second;
+        std::cout << qubit_record->isAllocated() << std::endl;
+        if (qubit_record->isAllocated()) {
+          qubit_record->setAllocated(false);
+          auto index = number * terminated_runtime_indices.size() / bell_pair_num;
+          auto runtime_index = terminated_runtime_indices[index];
+          terminated_runtimes.at(runtime_index).freeQubitFromRuleSet(partner_addr, qubit_record);
+          if (runtime_index_bell_pair_number_map.find(runtime_index) == runtime_index_bell_pair_number_map.end()) {
+            runtime_index_bell_pair_number_map[runtime_index] = 0;
+          } else {
+            runtime_index_bell_pair_number_map[runtime_index] = runtime_index_bell_pair_number_map[runtime_index] - 1;
+          }
+          std::cout << sequence_number << std::endl;
         }
       }
       number += 1;
