@@ -16,6 +16,7 @@ class RuntimeManager {
   std::vector<Runtime>::iterator findTerminatedRuntimeById(unsigned long long ruleset_id);
   std::vector<QNodeAddr> findPartnersById(unsigned long long ruleset_id);
   std::vector<unsigned long> getTerminatedRuleSetIDs();
+  std::vector<Runtime> getTerminatedRuntimes();
   void exec();
   void stopById(unsigned long long ruleset_id);
   std::vector<Runtime>::iterator begin();
@@ -26,6 +27,7 @@ class RuntimeManager {
 
  protected:
   std::vector<Runtime> runtimes;
+  std::vector<Runtime> terminated_runtimes;
   std::unique_ptr<Runtime::ICallBack> callback;
   std::map<unsigned long, std::vector<QNodeAddr> > ruleset_id_partners_map;
 };

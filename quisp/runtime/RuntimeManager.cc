@@ -35,15 +35,17 @@ void RuntimeManager::exec() {
     it->exec();
     std::cout << it->return_code << std::endl;
     if (it->is_active && it->is_terminated) {
-      it->is_active = false;
-      std::cout << "Simulation time: " << simTime() << std::endl;
       terminated_ruleset_id_list.push_back(ruleset_id);
+      it->is_active = false;
+      terminated_runtimes.push_back(*it);
       it = runtimes.erase(it);
     } else {
       ++it;
     }
   }
 }
+
+std::vector<Runtime> RuntimeManager::getTerminatedRuntimes() { return terminated_runtimes; }
 
 std::vector<unsigned long> RuntimeManager::getTerminatedRuleSetIDs() { return terminated_ruleset_id_list; }
 
