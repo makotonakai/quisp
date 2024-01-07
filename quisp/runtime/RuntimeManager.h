@@ -1,8 +1,9 @@
 #pragma once
-
+#include <list>
 #include <map>
 #include <unordered_map>
 #include <vector>
+
 #include "Runtime.h"
 #include "runtime/RuleSet.h"
 using quisp::runtime::QNodeAddr;
@@ -16,7 +17,7 @@ class RuntimeManager {
   std::vector<Runtime>::iterator findTerminatedRuntimeById(unsigned long long ruleset_id);
   std::vector<QNodeAddr> findPartnersById(unsigned long long ruleset_id);
   std::vector<unsigned long> getTerminatedRuleSetIDs();
-  std::vector<Runtime> getTerminatedRuntimes();
+  std::list<Runtime> getTerminatedRuntimes();
   void exec();
   void stopById(unsigned long long ruleset_id);
   std::vector<Runtime>::iterator begin();
@@ -27,7 +28,8 @@ class RuntimeManager {
 
  protected:
   std::vector<Runtime> runtimes;
-  std::vector<Runtime> terminated_runtimes;
+  // terminated_runtimes is set to be a list instead of a vector in order to avoid iterator destruction
+  std::list<Runtime> terminated_runtimes;
   std::unique_ptr<Runtime::ICallBack> callback;
   std::map<unsigned long, std::vector<QNodeAddr> > ruleset_id_partners_map;
 };

@@ -45,7 +45,7 @@ void RuntimeManager::exec() {
   }
 }
 
-std::vector<Runtime> RuntimeManager::getTerminatedRuntimes() { return terminated_runtimes; }
+std::list<Runtime> RuntimeManager::getTerminatedRuntimes() { return terminated_runtimes; }
 
 std::vector<unsigned long> RuntimeManager::getTerminatedRuleSetIDs() { return terminated_ruleset_id_list; }
 
