@@ -12,7 +12,7 @@ class TestLogger : public ILogger {
     std::cout << "logQubitState: " << qnic_index << ", " << qubit_index << ", busy: " << is_busy << ", allocated: " << is_allocated << std::endl;
   };
 
-  void logBellPairInfo(const std::string& event_type, int partner_addr, quisp::modules::QNIC_type qnic_type, int qnic_index, int qubit_index) override{};
+  void logBellPairInfo(const std::string& event_type, int sequence_number, int partner_addr, quisp::modules::QNIC_type qnic_type, int qnic_index, int qubit_index) override{};
 
   void setModule(omnetpp::cModule const* const mod) override {}
   void setQNodeAddress(int addr) override {}

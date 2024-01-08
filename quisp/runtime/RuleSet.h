@@ -127,4 +127,5 @@ class RuleSet {
   static inline void collectPartners(const RuleId rule_id, const InstructionTypes& instr, std::set<QNodeAddr>& partners,
                                      std::unordered_map<QNodeAddr, std::vector<RuleId>>& partner_rules);
 };
+inline bool operator==(const RuleSet& a, const RuleSet& b) { return a.id == b.id; };
 }  // namespace quisp::runtime

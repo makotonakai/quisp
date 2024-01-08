@@ -88,6 +88,7 @@ class BSAController : public cSimpleModule {
 
   // testing and debugging members
   simtime_t last_result_send_time = 0;
+  int sequence_number = 0;
 };
 
 }  // namespace quisp::modules

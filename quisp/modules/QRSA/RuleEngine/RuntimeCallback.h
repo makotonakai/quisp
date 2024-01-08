@@ -130,7 +130,7 @@ struct RuntimeCallback : public quisp::runtime::Runtime::ICallBack {
     pkt->setSrcAddr(rule_engine->parentAddress);
     pkt->setDestAddr(partner_addr.val);
     pkt->setKind(7);
-    pkt->setRulesetId(ruleset_id);
+    pkt->setRuleSetId(ruleset_id);
     pkt->setSharedRuleTag(shared_rule_tag);
     pkt->setSequenceNumber(sequence_number);
     pkt->setMeasurementResult(measurement_result);
@@ -146,12 +146,21 @@ struct RuntimeCallback : public quisp::runtime::Runtime::ICallBack {
     SwappingResult *pkt = new SwappingResult("SwappingResult");
     pkt->setSrcAddr(rule_engine->parentAddress);
     pkt->setDestAddr(partner_addr.val);
-    pkt->setRulesetId(ruleset_id);
+    pkt->setRuleSetId(ruleset_id);
     pkt->setSharedRuleTag(shared_rule_tag);
     pkt->setSequenceNumber(sequence_number);
     pkt->setKind(5);  // cyan
     pkt->setCorrectionFrame(frame_correction);
     pkt->setNewPartner(new_partner_addr.val);
+    rule_engine->send(pkt, "RouterPort$o");
+  }
+
+  void sendConnectionTeardownMessage(const unsigned long ruleset_id, const QNodeAddr parner_addr) {
+    ConnectionTeardownMessage *pkt = new ConnectionTeardownMessage("ConnectionTeardownMessage");
+    pkt->setSrcAddr(rule_engine->parentAddress);
+    pkt->setDestAddr(parner_addr.val);
+    pkt->setRuleSetId(ruleset_id);
+    pkt->setKind(8);
     rule_engine->send(pkt, "RouterPort$o");
   }
 

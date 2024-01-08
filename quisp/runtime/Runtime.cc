@@ -1,6 +1,8 @@
 #include "Runtime.h"
 
+// #include <__utility/pair.h>
 #include <omnetpp.h>
+#include "runtime/types.h"
 
 namespace quisp::runtime {
 
@@ -19,7 +21,7 @@ Runtime::Runtime(const Runtime& rt) : Runtime() {
   memory = rt.memory;
   ruleset = rt.ruleset;
   partners = rt.partners;
-  terminated = rt.terminated;
+  is_terminated = rt.is_terminated;
   debugging = rt.debugging;
 }
 
@@ -40,14 +42,14 @@ Runtime& Runtime::operator=(Runtime&& rt) {
   memory = std::move(rt.memory);
   ruleset = std::move(rt.ruleset);
   partners = std::move(rt.partners);
-  terminated = rt.terminated;
+  is_terminated = rt.is_terminated;
   debugging = rt.debugging;
   return *this;
 }
 Runtime::~Runtime() {}
 
 void Runtime::exec() {
-  if (terminated) return;
+  if (is_terminated) return;
   cleanup();
   debugging = ruleset.debugging;
   if (debugging) {
@@ -71,7 +73,7 @@ void Runtime::exec() {
       execProgram(rule.action);
       execProgram(ruleset.termination_condition);
       if (return_code == ReturnCode::RS_TERMINATED) {
-        terminated = true;
+        is_terminated = true;
         return;
       }
     }
@@ -152,6 +154,19 @@ QubitResources::iterator Runtime::findQubit(IQubitRecord* qubit_record) {
     }
   }
   throw cRuntimeError("Qubit not found: from the given QubitRecord");
+}
+
+void Runtime::freeQubitFromRuleSet(QNodeAddr partner_addr, IQubitRecord* qubit_record) {
+  auto it = ruleset.partner_initial_rule_table.find(partner_addr);
+  assert(it != ruleset.partner_initial_rule_table.end());
+  auto rule_id = it->second;
+
+  auto qubit_it = findQubit(qubit_record);
+  qubits.erase(qubit_it);
+
+  auto sequence_number = std::get<2>(qubit_to_sequence_number[qubit_record]);
+  sequence_number_to_qubit.erase({partner_addr, rule_id, sequence_number});
+  qubit_to_sequence_number.erase(qubit_record);
 }
 
 void Runtime::promoteQubit(IQubitRecord* qubit) {

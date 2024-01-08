@@ -7,6 +7,7 @@
 
 #include "JsonLogger.h"
 #include "messages/connection_setup_messages_m.h"
+#include "messages/connection_teardown_messages_m.h"
 #include "modules/QNIC.h"
 #include "omnetpp/cmessage.h"
 #include "test_utils/TestUtilFunctions.h"
@@ -14,6 +15,7 @@
 namespace {
 
 using quisp::messages::ConnectionSetupRequest;
+using quisp::modules::QNicPairInfo;
 using quisp::modules::Logger::JsonLogger;
 using namespace quisp::messages;
 using namespace quisp_test;
@@ -73,6 +75,22 @@ TEST_F(JsonLoggerTest, ConnRejectTest) {
             "\"application_id\": 1, \"actual_dest_addr\": 1, "
             "\"actual_src_addr\": 2, \"num_required_bell_pairs\": 0}\n");
 }
+
+TEST_F(JsonLoggerTest, ConnTeardownTest) {
+  auto tea = new ConnectionTeardownMessage();
+  tea->setActual_destAddr(2);
+  tea->setActual_srcAddr(1);
+  tea->setLAU_destAddr_left(2);
+  tea->setLAU_destAddr_right(1);
+  tea->setRuleSet_id(1);
+  logger->setQNodeAddress(7);
+  logger->logPacket("test", tea);
+  EXPECT_EQ(log_stream.str(),
+            "{\"simtime\": 0, \"event_type\": \"test\", \"address\": \"7\", \"msg_type\": \"ConnectionTeardownMessage\", "
+            "\"actual_dest_addr\": 2, \"actual_src_addr\": 1, \"LAU_destAddr_left\": 2, \"LAU_destAddr_right\": 1, "
+            "\"ruleset_id\": 1}\n");
+}
+
 TEST_F(JsonLoggerTest, UnknownPacket) {
   auto* packet = new cMessage();
   logger->logPacket("test", packet);
@@ -80,9 +98,10 @@ TEST_F(JsonLoggerTest, UnknownPacket) {
 }
 
 TEST_F(JsonLoggerTest, LogBellPairTest) {
-  logger->logBellPairInfo("Generated", 1, quisp::modules::QNIC_E, 2, 3);
+  logger->logBellPairInfo("Generated", 1, 1, quisp::modules::QNIC_E, 2, 3);
   EXPECT_EQ(log_stream.str(),
-            "{\"simtime\": 0, \"event_type\": \"BellPairGenerated\", \"address\": \"-1\", \"partner_addr\": 1, \"qnic_type\": 0, \"qnic_index\": 2, \"qubit_index\": 3}\n");
+            "{\"simtime\": 0, \"event_type\": \"BellPairGenerated\", \"address\": \"-1\", \"sequence_number\": 1, \"partner_addr\": 1, \"qnic_type\": 0, \"qnic_index\": 2, "
+            "\"qubit_index\": 3}\n");
 }
 
 TEST_F(JsonLoggerTest, LogQubitState) {

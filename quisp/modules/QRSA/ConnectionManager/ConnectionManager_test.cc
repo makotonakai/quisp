@@ -6,6 +6,8 @@
 #include <nlohmann/json.hpp>
 
 #include "messages/classical_messages.h"
+#include "messages/connection_setup_messages_m.h"
+#include "messages/connection_teardown_messages_m.h"
 #include "modules/QNIC.h"
 #include "modules/QRSA/HardwareMonitor/IHardwareMonitor.h"
 #include "modules/QRSA/RoutingDaemon/IRoutingDaemon.h"
@@ -47,6 +49,7 @@ class ConnectionManagerTestTarget : public quisp::modules::ConnectionManager {
   using quisp::modules::ConnectionManager::reserveQnic;
   using quisp::modules::ConnectionManager::respondToRequest;
   using quisp::modules::ConnectionManager::respondToRequest_deprecated;
+
   ConnectionManagerTestTarget(IRoutingDaemon *routing_daemon, IHardwareMonitor *hardware_monitor)
       : quisp::modules::ConnectionManager(), toRouterGate(new TestGate(this, "RouterPort$o")) {
     setParInt(this, "address", 5);
@@ -136,11 +139,11 @@ TEST(ConnectionManagerTest, RespondToRequest) {
   req->setActual_srcAddr(2);
   req->setDestAddr(5);
   req->setSrcAddr(4);
-  req->setStack_of_QNICsArraySize(3);
   req->setStack_of_QNodeIndexesArraySize(3);
   req->setStack_of_QNodeIndexes(0, 2);
   req->setStack_of_QNodeIndexes(1, 3);
   req->setStack_of_QNodeIndexes(2, 4);
+  req->setStack_of_QNICsArraySize(3);
   req->setStack_of_QNICs(0, QNicPairInfo{NULL_CONNECTION_SETUP_INFO.qnic, {.type = QNIC_E, .index = 11, .address = 101}});
   req->setStack_of_QNICs(1, QNicPairInfo{{.type = QNIC_E, .index = 12, .address = 102}, {.type = QNIC_E, .index = 13, .address = 103}});
   req->setStack_of_QNICs(2, QNicPairInfo{{.type = QNIC_E, .index = 14, .address = 104}, {.type = QNIC_E, .index = 15, .address = 105}});
@@ -601,4 +604,5 @@ TEST(ConnectionManagerTest, QnicReservation) {
   EXPECT_FALSE(connection_manager->isQnicBusy(qnic_address));
   EXPECT_FALSE(connection_manager->isQnicBusy(qnic_address2));
 }
+
 }  // namespace

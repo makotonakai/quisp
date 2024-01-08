@@ -3,18 +3,24 @@
  *  \brief ConnectionManager
  */
 
+#include <algorithm>
+#include <iterator>
 #include <string>
+#include <vector>
 
 #include "ConnectionManager.h"
 #include "RuleSetGenerator.h"
+#include "messages/QNode_ipc_messages_m.h"
+#include "messages/connection_setup_messages_m.h"
+#include "messages/connection_teardown_messages_m.h"
 
 using namespace omnetpp;
 using namespace quisp::messages;
 using namespace quisp::rules;
+using namespace quisp::modules;
 using quisp::modules::ruleset_gen::RuleSetGenerator;
 
 namespace quisp::modules {
-
 Define_Module(ConnectionManager);
 ConnectionManager::ConnectionManager() : provider(utils::ComponentProvider{this}) {}
 
@@ -101,7 +107,12 @@ void ConnectionManager::handleMessage(cMessage *msg) {
     int initiator_addr = resp->getActual_destAddr();
     int responder_addr = resp->getActual_srcAddr();
 
-    if (initiator_addr == my_address || responder_addr == my_address) {
+    if (responder_addr == my_address) {
+      auto ruleset_id = resp->getRuleSet_id();
+      auto node_addresses = ruleset_id_node_addresses_along_path_map[ruleset_id];
+
+      storeRuleSetForApplication(resp);
+    } else if (initiator_addr == my_address) {
       // this node is not a swapper
       storeRuleSetForApplication(resp);
     } else {
@@ -109,6 +120,7 @@ void ConnectionManager::handleMessage(cMessage *msg) {
       // currently, destinations are separated. (Not accumulated.)
       storeRuleSet(resp);
     }
+
     delete msg;
     return;
   }
@@ -121,6 +133,41 @@ void ConnectionManager::handleMessage(cMessage *msg) {
     } else {
       intermediate_reject_req_handler(pk);
     }
+    delete msg;
+    return;
+  }
+
+  if (auto *pk = dynamic_cast<ConnectionTeardownNotifier *>(msg)) {
+    for (int i = 0; i < pk->getRuleSetIdCount(); i++) {
+      auto ruleset_id = pk->getRuleSetIds(i);
+      sendConnectionTeardownMessage(ruleset_id);
+    }
+    delete msg;
+    return;
+  }
+
+  if (auto *pk = dynamic_cast<ConnectionTeardownMessage *>(msg)) {
+    //     // Connection is torn down only if the node has not received the ConnectionTeardownMessage If it has already received it, the incoming message is ignored.
+
+    //     // if (my_address == dest_addr) {
+    //     //   if (isQnicBusy(inbound_qnic_addr)) {
+    //     //     releaseQnic(inbound_qnic_addr);
+    //     //   }
+    //     // } else if (my_address == src_addr) {
+    //     //   if (isQnicBusy(outbound_qnic_addr)) {
+    //     //     releaseQnic(outbound_qnic_addr);
+    //     //   }
+    //     // } else {
+    //     //   if (isQnicBusy(inbound_qnic_addr)) {
+    //     //     releaseQnic(inbound_qnic_addr);
+    //     //   }
+    //     //   if (isQnicBusy(outbound_qnic_addr)) {
+    //     //     releaseQnic(outbound_qnic_addr);
+    //     //   }
+    //     // }
+    //     // available_qnics = {};
+
+    storeInternalConnectionTeardownMessage(pk);
     delete msg;
     return;
   }
@@ -161,6 +208,23 @@ PurType ConnectionManager::parsePurType(const std::string &pur_type) {
     return PurType::DSDA_SECOND_INV;
   }
   return PurType::INVALID;
+}
+
+/**
+ * This function is called to handle the ConnectionTeardownMessage at end nodes.
+ * The only job here is to store InternalConnectionTeardownMessage and feed them to the RuleEngine via Router.
+ *
+ * \param pk the received ConnectionTeardownMessage.
+ **/
+void ConnectionManager::storeInternalConnectionTeardownMessage(ConnectionTeardownMessage *pk) {
+  InternalConnectionTeardownMessage *pk_internal = new InternalConnectionTeardownMessage("InternalConnectionTeardownMessage");
+  pk_internal->setSrcAddr(my_address);
+  pk_internal->setDestAddr(my_address);
+  pk_internal->setKind(5);
+  pk_internal->setRuleSetId(pk->getRuleSetId());
+  pk_internal->setLeftNodeAddr(pk->getLeftNodeAddr());
+  pk_internal->setRightNodeAddr(pk->getRightNodeAddr());
+  send(pk_internal, "RouterPort$o");
 }
 
 /**
@@ -240,28 +304,50 @@ void ConnectionManager::respondToRequest(ConnectionSetupRequest *req) {
   }
 
   // check if the qnics are reserved or not
-  if (isQnicBusy(qnic_addr)) {
-    rejectRequest(req);
-    return;
-  }
+  // if (isQnicBusy(qnic_addr)) {
+  //   rejectRequest(req);
+  //   return;
+  // }
 
+  auto ruleset_id = createUniqueId();
   ruleset_gen::RuleSetGenerator ruleset_gen{my_address};
-  auto rulesets = ruleset_gen.generateRuleSets(req, createUniqueId());
+  auto rulesets = ruleset_gen.generateRuleSets(req, ruleset_id);
+  auto initiator_address = req->getActual_srcAddr();
 
   // distribute rulesets to each qnode in the path
   for (auto [owner_address, rs] : rulesets) {
     ConnectionSetupResponse *pkt = new ConnectionSetupResponse("ConnectionSetupResponse");
     pkt->setApplicationId(application_id);
     pkt->setRuleSet(rs);
+    pkt->setRuleSet_id(ruleset_id);
     pkt->setSrcAddr(my_address);
     pkt->setDestAddr(owner_address);
+    pkt->setInitiator_Addr(initiator_address);
     pkt->setActual_srcAddr(my_address);
     pkt->setActual_destAddr(owner_address);
     pkt->setApplication_type(0);
     pkt->setKind(2);
     send(pkt, "RouterPort$o");
+
+    if (ruleset_id_node_addresses_along_path_map.find(ruleset_id) == ruleset_id_node_addresses_along_path_map.end()) {
+      ruleset_id_node_addresses_along_path_map[ruleset_id] = {owner_address};
+    } else {
+      ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(owner_address);
+    }
   }
-  reserveQnic(qnic_addr);
+  // reserveQnic(qnic_addr);
+}
+
+int ConnectionManager::getRuleSetIndexByOwnerAddress(std::map<int, nlohmann::json> rulesets, int owner_address) {
+  auto index = 0;
+  for (auto [current_address, rs] : rulesets) {
+    if (current_address == owner_address) {
+      return index;
+    } else {
+      index += 1;
+    }
+  }
+  return -1;
 }
 
 /**
@@ -289,15 +375,14 @@ void ConnectionManager::tryRelayRequestToNextHop(ConnectionSetupRequest *req) {
   auto outbound_info = hardware_monitor->findConnectionInfoByQnicAddr(outbound_qnic_address);
   auto inbound_info = hardware_monitor->findConnectionInfoByQnicAddr(inbound_qnic_address);
 
-  if (isQnicBusy(outbound_qnic_address) || isQnicBusy(inbound_qnic_address)) {
-    rejectRequest(req);
-    return;
-  }
+  // if (isQnicBusy(outbound_qnic_address) || isQnicBusy(inbound_qnic_address)) {
+  //   rejectRequest(req);
+  //   return;
+  // }
 
   // Update information and send it to the next Qnode.
   int num_accumulated_nodes = req->getStack_of_QNodeIndexesArraySize();
   int num_accumulated_costs = req->getStack_of_linkCostsArraySize();
-  int num_accumulated_pair_info = req->getStack_of_QNICsArraySize();
 
   req->setApplicationId(application_id);
   req->setDestAddr(outbound_info->neighbor_address);
@@ -306,15 +391,34 @@ void ConnectionManager::tryRelayRequestToNextHop(ConnectionSetupRequest *req) {
   req->setStack_of_linkCostsArraySize(num_accumulated_costs + 1);
   req->setStack_of_QNodeIndexes(num_accumulated_nodes, my_address);
   req->setStack_of_linkCosts(num_accumulated_costs, outbound_info->quantum_link_cost);
-  req->setStack_of_QNICsArraySize(num_accumulated_pair_info + 1);
 
-  QNicPairInfo pair_info{inbound_info->qnic, outbound_info->qnic};
-  req->setStack_of_QNICs(num_accumulated_pair_info, pair_info);
-
-  reserveQnic(inbound_info->qnic.address);
-  reserveQnic(outbound_info->qnic.address);
+  // reserveQnic(inbound_info->qnic.address);
+  // reserveQnic(outbound_info->qnic.address);
 
   send(req, "RouterPort$o");
+}
+
+void ConnectionManager::generateListOfNeighboringNodes(ConnectionSetupResponse *res) {
+  auto initiator_addr = res->getInitiator_Addr();
+  auto responder_addr = res->getSrcAddr();
+
+  int outbound_qnic_address = routing_daemon->findQNicAddrByDestAddr(responder_addr);
+  int inbound_qnic_address = routing_daemon->findQNicAddrByDestAddr(initiator_addr);
+
+  auto ruleset_id = res->getRuleSet_id();
+
+  if (initiator_addr == my_address) {
+    auto outbound_info = hardware_monitor->findConnectionInfoByQnicAddr(outbound_qnic_address);
+    ruleset_id_neighboring_node_addresses_map[ruleset_id].push_back(outbound_info->neighbor_address);
+  } else if (responder_addr == my_address) {
+    auto inbound_info = hardware_monitor->findConnectionInfoByQnicAddr(inbound_qnic_address);
+    ruleset_id_neighboring_node_addresses_map[ruleset_id].push_back(inbound_info->neighbor_address);
+  } else {
+    auto outbound_info = hardware_monitor->findConnectionInfoByQnicAddr(outbound_qnic_address);
+    auto inbound_info = hardware_monitor->findConnectionInfoByQnicAddr(inbound_qnic_address);
+    ruleset_id_neighboring_node_addresses_map[ruleset_id].push_back(outbound_info->neighbor_address);
+    ruleset_id_neighboring_node_addresses_map[ruleset_id].push_back(inbound_info->neighbor_address);
+  }
 }
 
 // This is not good way. This property should be held in qnic property.
@@ -334,7 +438,7 @@ void ConnectionManager::releaseQnic(int qnic_address) {
   if (it == reserved_qnics.end()) {
     error("qnic(addr: %d)  not reserved", qnic_address);
   }
-  // else if the qnic is propery reserved, erase it from vector
+  // else if the qnic is properly reserved, erase it from vector
   reserved_qnics.erase(it);
 }
 
@@ -351,7 +455,7 @@ void ConnectionManager::initiator_reject_req_handler(RejectConnectionSetupReques
   int actual_dest = pk->getActual_destAddr();
   int outbound_qnic_address = routing_daemon->findQNicAddrByDestAddr(actual_dest);
 
-  releaseQnic(outbound_qnic_address);
+  // releaseQnic(outbound_qnic_address);
   scheduleRequestRetry(outbound_qnic_address);
 }
 
@@ -366,7 +470,7 @@ void ConnectionManager::responder_reject_req_handler(RejectConnectionSetupReques
 
 /**
  *  This function is called during the handling of ConnectionSetupRequest at an
- *  intermediate node (not the initator or responder).
+ *  intermediate node (not the initiator or responder).
  * \param pk pointer to the ConnectionSetupRequest packet itself
  * \returns nothing
  * This function is called when we discover that we can't fulfill the connection request,
@@ -380,8 +484,8 @@ void ConnectionManager::intermediate_reject_req_handler(RejectConnectionSetupReq
   int outbound_qnic_address = routing_daemon->findQNicAddrByDestAddr(actual_dst);
   int inbound_qnic_address = routing_daemon->findQNicAddrByDestAddr(actual_src);
 
-  releaseQnic(outbound_qnic_address);
-  releaseQnic(inbound_qnic_address);
+  // releaseQnic(outbound_qnic_address);
+  // releaseQnic(inbound_qnic_address);
 }
 
 unsigned long ConnectionManager::createUniqueId() {
@@ -410,7 +514,6 @@ void ConnectionManager::queueApplicationRequest(ConnectionSetupRequest *req) {
   // Update information and send it to the next Qnode.
   int num_accumulated_nodes = req->getStack_of_QNodeIndexesArraySize();
   int num_accumulated_costs = req->getStack_of_linkCostsArraySize();
-  int num_accumulated_pair_info = req->getStack_of_QNICsArraySize();
 
   req->setDestAddr(outbound_info->neighbor_address);
   req->setSrcAddr(my_address);
@@ -418,10 +521,6 @@ void ConnectionManager::queueApplicationRequest(ConnectionSetupRequest *req) {
   req->setStack_of_linkCostsArraySize(num_accumulated_costs + 1);
   req->setStack_of_QNodeIndexes(num_accumulated_nodes, my_address);
   req->setStack_of_linkCosts(num_accumulated_costs, outbound_info->quantum_link_cost);
-  req->setStack_of_QNICsArraySize(num_accumulated_pair_info + 1);
-
-  QNicPairInfo pair_info{inbound_info->qnic, outbound_info->qnic};
-  req->setStack_of_QNICs(num_accumulated_pair_info, pair_info);
 
   auto &request_queue = connection_setup_buffer[outbound_qnic_address];
   request_queue.push(req);
@@ -440,7 +539,7 @@ void ConnectionManager::popApplicationRequest(int qnic_address) {
   connection_retry_count[qnic_address] = 0;
   request_queue.pop();
   delete req;
-  releaseQnic(qnic_address);
+  // releaseQnic(qnic_address);
 
   if (!request_queue.empty()) {
     EV << "schedule from pop" << endl;
@@ -455,13 +554,13 @@ void ConnectionManager::initiateApplicationRequest(int qnic_address) {
     error("trying to initiate a request from empty queue");
   }
 
-  if (isQnicBusy(qnic_address)) {
-    EV << "qnic is busy stop trying to send for now" << endl;
-    connection_retry_count[qnic_address] = 0;
-    return;
-  }
+  // if (isQnicBusy(qnic_address)) {
+  //   EV << "qnic is busy stop trying to send for now" << endl;
+  //   connection_retry_count[qnic_address] = 0;
+  //   return;
+  // }
 
-  reserveQnic(qnic_address);
+  // reserveQnic(qnic_address);
   auto req = request_queue.front();
   send(req->dup(), "RouterPort$o");
 }
@@ -476,6 +575,33 @@ void ConnectionManager::scheduleRequestRetry(int qnic_address) {
   EV << "schedule from retry" << endl;
   scheduleAt(simTime() + backoff, request_send_timing[qnic_address]);
   return;
+}
+
+void ConnectionManager::sendConnectionTeardownMessage(unsigned long ruleset_id) {
+  auto node_address_along_path = ruleset_id_node_addresses_along_path_map[ruleset_id];
+  for (auto i = 0; i < node_address_along_path.size(); i++) {
+    int left_node_address;
+    int right_node_address;
+    auto node_address = node_address_along_path[i];
+    if (i == 0) {
+      left_node_address = -1;
+      right_node_address = node_address_along_path[i + 1];
+    } else if (i == node_address_along_path.size() - 1) {
+      left_node_address = node_address_along_path[i - 1];
+      right_node_address = -1;
+    } else {
+      left_node_address = node_address_along_path[i - 1];
+      right_node_address = node_address_along_path[i + 1];
+    }
+
+    ConnectionTeardownMessage *pkt = new ConnectionTeardownMessage("ConnectionTeardownMessage");
+    pkt->setSrcAddr(my_address);
+    pkt->setDestAddr(node_address);
+    pkt->setLeftNodeAddr(left_node_address);
+    pkt->setRightNodeAddr(right_node_address);
+    pkt->setRuleSetId(ruleset_id);
+    send(pkt, "RouterPort$o");
+  }
 }
 
 }  // namespace quisp::modules

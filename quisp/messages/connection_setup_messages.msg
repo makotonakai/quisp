@@ -2,7 +2,6 @@ import base_messages;
 namespace quisp::messages;
 
 
-
 packet ConnectionSetupRequest extends Header
 {
     int application_id @getter(getApplicationId) @setter(setApplicationId);
@@ -28,6 +27,7 @@ packet ConnectionSetupResponse extends Header
     int application_id @getter(getApplicationId) @setter(setApplicationId);
     int actual_srcAddr;
     int actual_destAddr;
+    int initiator_Addr;
     unsigned long RuleSet_id;
     json ruleSet;
     int application_type;

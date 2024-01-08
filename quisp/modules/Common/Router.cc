@@ -4,6 +4,9 @@
  *  \brief Router
  */
 #include "Router.h"
+#include "messages/QNode_ipc_messages_m.h"
+#include "messages/classical_messages.h"  //Path selection: type = 1, Timing notifier for BMA: type = 4
+#include "messages/connection_teardown_messages_m.h"
 #include "messages/BSA_ipc_messages_m.h"
 #include "messages/classical_messages.h"  //Path selection: type = 1, Timing notifier for BMA: type = 4
 #include "messages/link_generation_messages_m.h"
@@ -112,6 +115,34 @@ void Router::handleMessage(cMessage *msg) {
     bubble("Internal RuleSet Forwarding Application packet received");
     send(pk, "rePort$o");
     return;
+  } else if (dest_addr == my_address && dynamic_cast<ConnectionTeardownMessage *>(msg)) {
+    bubble("Connection Teardown packet received");
+    send(pk, "cmPort$o");
+    return;
+  } else if (dest_addr == my_address && dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
+    bubble("Internal Connection Teardown packet received");
+    send(pk, "rePort$o");
+    return;
+  } else if (dest_addr == my_address && dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
+    bubble("Internal Neighbor Addresses packet received");
+    send(pk, "rePort$o");
+    return;
+  } else if (dest_addr == my_address && dynamic_cast<LinkAllocationUpdateMessage *>(msg)) {
+    bubble("Link Allocation Update Message packet received");
+    send(pk, "rePort$o");
+    return;
+  } else if (dest_addr == my_address && dynamic_cast<BarrierMessage *>(msg)) {
+    bubble("Barrier Message packet received");
+    send(pk, "rePort$o");
+    return;
+  } else if (dest_addr == my_address && dynamic_cast<WaitMessage *>(msg)) {
+    bubble("Wait Message packet received");
+    send(pk, "rePort$o");
+    return;
+  } else if (dest_addr == my_address && dynamic_cast<ConnectionTeardownNotifier *>(msg)) {
+    bubble("Connection Teardown Notifier packet received");
+    send(pk, "cmPort$o");
+    return;
   } else if (dest_addr == my_address && dynamic_cast<SwappingResult *>(msg)) {
     bubble("Swapping Result packet received");
     send(pk, "rePort$o");
@@ -154,7 +185,7 @@ void Router::handleMessage(cMessage *msg) {
   if (!routing_table.count(dest_addr)) {
     std::cout << "In Node[" << my_address << "]Address... " << dest_addr << " unreachable, discarding packet " << pk->getName() << endl;
     delete pk;
-    error("Router couldn't find the path. Shoudn't happen. Or maybe the router does not understand the packet.");
+    error("Router couldn't find the path. Shouldn't happen. Or maybe the router does not understand the packet.");
     return;
   }
 

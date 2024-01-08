@@ -4,6 +4,9 @@
 #include <test_utils/TestUtils.h>
 
 #include "Router.h"
+#include "messages/barrier_messages_m.h"
+#include "messages/connection_teardown_messages_m.h"
+#include "messages/link_allocation_update_messages_m.h"
 #include "modules/SharedResource/SharedResource.h"
 
 using namespace quisp_test;
@@ -161,6 +164,41 @@ TEST_F(RouterTest, handleInternalRuleSetForwarding) {
 
 TEST_F(RouterTest, handleInternalRuleSetForwarding_Application) {
   auto msg = new InternalRuleSetForwarding_Application;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleInternalConnectionTeardownMessage) {
+  auto msg = new InternalConnectionTeardownMessage;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleBarrierMessage) {
+  auto msg = new BarrierMessage;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleWaitMessage) {
+  auto msg = new WaitMessage;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->rePort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleConnectionTeardownNotifier) {
+  auto msg = new ConnectionTeardownNotifier;
+  msg->setDestAddr(10);
+  router->handleMessage(msg);
+  ASSERT_EQ(router->cmPort->messages.size(), 1);
+}
+
+TEST_F(RouterTest, handleLinkAllocationUpdateMessage) {
+  auto msg = new LinkAllocationUpdateMessage;
   msg->setDestAddr(10);
   router->handleMessage(msg);
   ASSERT_EQ(router->rePort->messages.size(), 1);

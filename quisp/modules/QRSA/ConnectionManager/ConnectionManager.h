@@ -8,10 +8,13 @@
 #pragma once
 
 #include <omnetpp.h>
+#include <locale>
+#include <map>
 #include <queue>
 #include <vector>
 
 #include "IConnectionManager.h"
+#include "messages/connection_teardown_messages_m.h"
 
 #include <messages/classical_messages.h>
 #include <modules/Logger/LoggerBase.h>
@@ -62,10 +65,14 @@ class ConnectionManager : public IConnectionManager, public Logger::LoggerBase {
  protected:
   int my_address;
   int num_of_qnics;
+
+  std::vector<int> node_addresses_along_path;
   std::map<int, std::queue<messages::ConnectionSetupRequest *>> connection_setup_buffer;  // key is qnic address
   std::map<int, int> connection_retry_count;  // key is qnic address
   std::vector<int> reserved_qnics = {};  // reserved qnic address table
   std::vector<cMessage *> request_send_timing;  // self message, notification for sending out request
+  std::map<unsigned long, std::vector<int>> ruleset_id_node_addresses_along_path_map;
+  std::map<unsigned long, std::vector<int>> ruleset_id_neighboring_node_addresses_map;
   bool simultaneous_es_enabled;
   bool es_with_purify = false;
   int num_remote_purification;
@@ -86,8 +93,12 @@ class ConnectionManager : public IConnectionManager, public Logger::LoggerBase {
   void scheduleRequestRetry(int qnic_address);
   void popApplicationRequest(int qnic_address);
 
+  void sendConnectionTeardownMessage(unsigned long ruleset_id);
+  void storeInternalConnectionTeardownMessage(messages::ConnectionTeardownMessage *pk);
+
   void storeRuleSetForApplication(messages::ConnectionSetupResponse *pk);
   void storeRuleSet(messages::ConnectionSetupResponse *pk);
+  void generateListOfNeighboringNodes(messages::ConnectionSetupResponse *res);
 
   void initiator_reject_req_handler(messages::RejectConnectionSetupRequest *pk);
   void responder_reject_req_handler(messages::RejectConnectionSetupRequest *pk);
@@ -102,6 +113,8 @@ class ConnectionManager : public IConnectionManager, public Logger::LoggerBase {
   static rules::PurType parsePurType(const std::string &pur_type);
 
   unsigned long createUniqueId() override;
+  int getRuleSetIndexByOwnerAddress(std::map<int, nlohmann::json> rulesets, int owner_address);
+  std::map<int, std::pair<quisp::modules::QNIC, quisp::modules::QNIC>> generateListOfQNICs(messages::ConnectionSetupRequest *req);
 };
 
 }  // namespace quisp::modules

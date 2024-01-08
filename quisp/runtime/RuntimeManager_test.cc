@@ -1,10 +1,12 @@
 #include <gtest/gtest.h>
 #include <memory>
+#include <vector>
 
 #include "RuleSet.h"
 #include "RuntimeManager.h"
 #include "runtime/types.h"
 #include "test.h"
+#include "test_utils/TestUtils.h"
 
 namespace {
 using namespace quisp::runtime;
@@ -14,6 +16,7 @@ using namespace testing;
 class RuntimeManagerTest : public testing::Test {
  protected:
   void SetUp() {
+    utils::prepareSimulation();
     auto cb = std::make_unique<MockRuntimeCallback>();
     callback = cb.get();
     runtimes = new RuntimeManager(std::move(cb));
@@ -107,9 +110,9 @@ TEST_F(RuntimeManagerTest, Exec) {
     EXPECT_EQ(rs1.loadVal(MemoryKey{"test"}).intValue(), 123);
     EXPECT_EQ(rs2.loadVal(MemoryKey{"test"}).intValue(), 123);
     EXPECT_EQ(rs3.loadVal(MemoryKey{"test"}).intValue(), 123);
-    EXPECT_FALSE(rs1.terminated);
-    EXPECT_FALSE(rs2.terminated);
-    EXPECT_FALSE(rs3.terminated);
+    EXPECT_FALSE(rs1.is_terminated);
+    EXPECT_FALSE(rs2.is_terminated);
+    EXPECT_FALSE(rs3.is_terminated);
   }
 }
 
@@ -135,8 +138,56 @@ TEST_F(RuntimeManagerTest, ExecAndTerminated) {
     auto& rs3 = runtimes->at(1);
     EXPECT_EQ(rs1.loadVal(MemoryKey{"test"}).intValue(), 123);
     EXPECT_EQ(rs3.loadVal(MemoryKey{"test"}).intValue(), 123);
-    EXPECT_FALSE(rs1.terminated);
-    EXPECT_FALSE(rs3.terminated);
+    EXPECT_FALSE(rs1.is_terminated);
+    EXPECT_FALSE(rs3.is_terminated);
   }
 }
+
+TEST_F(RuntimeManagerTest, StopById) {
+  Program terminator{"terminator", {INSTR_RET_ReturnCode_{{ReturnCode::RS_TERMINATED}}}};
+  Rule rule{
+      "", -1, -1, cond_passed_once, checker,
+  };
+  RuleSet rs1{"rs1", {rule}, empty};
+  rs1.id = 1;
+  RuleSet rs2{"rs2", {rule}, terminator};
+  rs2.id = 2;
+  RuleSet rs3{"rs3", {rule}, empty};
+  rs3.id = 3;
+  runtimes->acceptRuleSet(rs1);
+  runtimes->acceptRuleSet(rs2);
+  runtimes->acceptRuleSet(rs3);
+  EXPECT_EQ(runtimes->size(), 3);
+  runtimes->stopById(rs1.id);
+  EXPECT_TRUE(runtimes->findById(rs1.id)->is_terminated);
+  runtimes->stopById(rs2.id);
+  EXPECT_TRUE(runtimes->findById(rs2.id)->is_terminated);
+  runtimes->stopById(rs3.id);
+  EXPECT_TRUE(runtimes->findById(rs3.id)->is_terminated);
+}
+
+TEST_F(RuntimeManagerTest, GetTerminatedRuleSetIDs) {
+  Program terminator{"terminator", {INSTR_RET_ReturnCode_{{ReturnCode::RS_TERMINATED}}}};
+  Rule rule{
+      "", -1, -1, cond_passed_once, checker,
+  };
+  RuleSet rs1{"rs1", {rule}, empty};
+  rs1.id = 1;
+  RuleSet rs2{"rs2", {rule}, terminator};
+  rs2.id = 2;
+  RuleSet rs3{"rs3", {rule}, empty};
+  rs3.id = 3;
+  runtimes->acceptRuleSet(rs1);
+  runtimes->acceptRuleSet(rs2);
+  runtimes->acceptRuleSet(rs3);
+  EXPECT_EQ(runtimes->size(), 3);
+  runtimes->exec();
+  ASSERT_EQ(runtimes->size(), 2);
+  {
+    auto terminated_ruleset_id_list = runtimes->getTerminatedRuleSetIDs();
+    ASSERT_EQ(terminated_ruleset_id_list.size(), 1);
+    ASSERT_EQ(terminated_ruleset_id_list.at(0), 2);
+  }
+}
+
 }  // namespace

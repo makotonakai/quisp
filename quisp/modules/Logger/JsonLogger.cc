@@ -1,11 +1,14 @@
 #include "JsonLogger.h"
 #include <sstream>
+#include "messages/QNode_ipc_messages_m.h"
+#include "messages/barrier_messages_m.h"
 #include "messages/connection_setup_messages_m.h"
 
 namespace quisp::modules::Logger {
 
 using quisp::messages::ConnectionSetupRequest;
 using quisp::messages::ConnectionSetupResponse;
+using quisp::messages::ConnectionTeardownMessage;
 using quisp::messages::RejectConnectionSetupRequest;
 
 JsonLogger::JsonLogger(std::shared_ptr<spdlog::logger> logger) : _logger(logger) {
@@ -71,14 +74,119 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     os << "]";
     return os.str();
   }
+  if (auto* req = dynamic_cast<const quisp::messages::ConnectionTeardownMessage*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"ConnectionTeardownMessage\"";
+    os << ", \"left_node_addr\": " << req->getLeftNodeAddr();
+    os << ", \"right_node_addr\": " << req->getRightNodeAddr();
+    os << ", \"ruleset_id\": " << req->getRuleSetId();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::InternalRuleSetForwarding_Application*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"InternalRuleSetForwarding_Application\"";
+    os << ", \"rule_id\": " << req->getRule_id();
+    os << ", \"ruleset_id\": " << req->getRuleSet_id();
+    os << ", \"ruleset\": " << req->getRuleSet();
+    os << ", \"application_type\": " << req->getApplication_type();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::InternalRuleSetForwarding*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"InternalRuleSetForwarding\"";
+    os << ", \"rule_id\": " << req->getRule_id();
+    os << ", \"ruleset_id\": " << req->getRuleSet_id();
+    os << ", \"ruleset\": " << req->getRuleSet();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::InternalConnectionTeardownMessage*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"InternalConnectionTeardownMessage\"";
+    os << ", \"left_node_addr\": " << req->getLeftNodeAddr();
+    os << ", \"right_node_addr\": " << req->getRightNodeAddr();
+    os << ", \"ruleset_id\": " << req->getRuleSetId();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateNotifier*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"LinkAllocationUpdateNotifier\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"stack_of_qnode_indices\": [";
+    for (int i = 0; i < req->getStack_of_NeighboringQNodeIndicesArraySize(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getStack_of_NeighboringQNodeIndices(i);
+    }
+    os << "]";
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::BarrierMessage*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"BarrierMessage\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"sequence_number\": " << req->getSequenceNumber();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::WaitMessage*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"WaitMessage\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"dest_addr_of_barrier_message\": " << req->getDestAddrOfBarrierMessage();
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::ConnectionTeardownNotifier*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"ConnectionTeardownNotifier\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"stack_of_ruleset_id\": [";
+    for (int i = 0; i < req->getRuleSetIdCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getRuleSetIds(i);
+    }
+    os << "]";
+    return os.str();
+  }
+
+  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationUpdateMessage*>(msg)) {
+    std::stringstream os;
+    os << "\"msg_type\": \"LinkAllocationUpdateMessage\"";
+    os << ", \"dest_addr\": " << req->getDestAddr();
+    os << ", \"src_addr\": " << req->getSrcAddr();
+    os << ", \"stack_of_active_link_allocations\": [";
+    for (int i = 0; i < req->getActiveLinkAllocationCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getActiveLinkAllocations(i);
+    }
+    os << "]";
+    os << ", \"stack_of_next_link_allocations\": [";
+    for (int i = 0; i < req->getNextLinkAllocationCount(); i++) {
+      if (i != 0) os << ", ";
+      os << req->getNextLinkAllocations(i);
+    }
+    os << "]";
+    os << ", \"random_number\": " << req->getRandomNumber();
+    return os.str();
+  }
 
   return "\"msg\": \"unknown class\": \"" + msg->getFullPath() + "\"";
 }
 
-void JsonLogger::logBellPairInfo(const std::string& event_type, int partner_addr, quisp::modules::QNIC_type qnic_type, int qnic_index, int qubit_index) {
+void JsonLogger::logBellPairInfo(const std::string& event_type, int sequence_number, int partner_addr, quisp::modules::QNIC_type qnic_type, int qnic_index, int qubit_index) {
   auto current_time = omnetpp::simTime();
-  _logger->info("\"simtime\": {}, \"event_type\": \"BellPair{}\", \"address\": \"{}\", \"partner_addr\": {}, \"qnic_type\": {}, \"qnic_index\": {}, \"qubit_index\": {}",
-                current_time, event_type, qnode_address, partner_addr, qnic_type, qnic_index, qubit_index);
+  _logger->info(
+      "\"simtime\": {}, \"event_type\": \"BellPair{}\", \"address\": \"{}\", \"sequence_number\": {}, \"partner_addr\": {}, \"qnic_type\": {}, \"qnic_index\": {}, "
+      "\"qubit_index\": {}",
+      current_time, event_type, qnode_address, sequence_number, partner_addr, qnic_type, qnic_index, qubit_index);
 }
 
 }  // namespace quisp::modules::Logger

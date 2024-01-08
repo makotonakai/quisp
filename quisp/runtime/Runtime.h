@@ -131,10 +131,18 @@ class Runtime {
   void assignQubitToRuleSet(QNodeAddr partner_addr, IQubitRecord* qubit_record);
 
   /**
+   * @brief  free the entangled qubit to the RuleSet. The Runtime frees it from
+   * the first rule and other Rules can use the qubit.
+   *
+   * @param partner_addr the entangled partner QNode address for the qubit.
+   * @param qubit_record the entangled qubit's record.
+   */
+  void freeQubitFromRuleSet(QNodeAddr partner_addr, IQubitRecord* qubit_record);
+
+  /**
    * @brief assign the entangled qubit to the rule
    *
    * @param partner_addr the entangled partner QNode address for the qubit.
-   * @param rule_id the rule id to assign the qubit
    * @param qubit_record  the entangled qubit's record
    */
   void assignQubitToRule(QNodeAddr partner_addr, RuleId rule_id, IQubitRecord* qubit_record);
@@ -456,12 +464,25 @@ class Runtime {
   bool should_exit = false;
 
   /**
+   * @brief This flag is enabled when the RuleSet is a part of the active link allocation.
+   *
+   */
+  bool is_active = false;
+
+  /**
    * @brief This flag is enabled when the RuleSet finishes its tasks.
    *
    * If this flag is true, the Runtime stops the Program execution,
    * and then the RuleEngine deletes the RuleSet and the Runtime.
    */
-  bool terminated = false;
+  bool is_terminated = false;
+
+  /**
+   * @brief This flag is enabled after the allocated link Bell pairs are released.
+   *
+   * If this flag is true, all the allocated link Bell pairs are released from this Runtime.
+   */
+  bool link_released = false;
 
   /**
    * @brief The GET_QUBIT instruction sets this flag. if it's true, the GET_QUBIT

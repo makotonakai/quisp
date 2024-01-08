@@ -99,7 +99,7 @@ TEST_F(ActionExecutionTest, Tomography) {
   runtime->exec();
   ASSERT_EQ(getResourceSizeByRuleId(*runtime, 0), 0);
 
-  runtime->terminated = false;
+  runtime->is_terminated = false;
   runtime->assignQubitToRuleSet(partner_addr, qubit2);
   ASSERT_EQ(getResourceSizeByRuleId(*runtime, 0), 1);
   EXPECT_CALL(*callback, freeAndResetQubit(qubit2)).Times(1);
@@ -134,7 +134,7 @@ TEST_F(ActionExecutionTest, Swapping) {
   runtime->exec();
   ASSERT_EQ(getResourceSizeByRuleId(*runtime, 0), 0);
 
-  runtime->terminated = false;
+  runtime->is_terminated = false;
   EXPECT_CALL(*callback, gateCNOT(qubit1, qubit2)).Times(1);
   EXPECT_CALL(*callback, measureQubitX(qubit1)).Times(1).WillOnce(Return(MeasurementOutcome{.basis = 'X', .outcome_is_plus = false}));
   EXPECT_CALL(*callback, measureQubitZ(qubit2)).Times(1).WillOnce(Return(MeasurementOutcome{.basis = 'Z', .outcome_is_plus = false}));
@@ -149,7 +149,7 @@ TEST_F(ActionExecutionTest, Swapping) {
   runtime->exec();
   ASSERT_EQ(getResourceSizeByRuleId(*runtime, 0), 0);
 
-  runtime->terminated = false;
+  runtime->is_terminated = false;
   EXPECT_CALL(*callback, gateCNOT(qubit1, qubit2)).Times(1);
   EXPECT_CALL(*callback, measureQubitX(qubit1)).Times(1).WillOnce(Return(MeasurementOutcome{.basis = 'X', .outcome_is_plus = true}));
   EXPECT_CALL(*callback, measureQubitZ(qubit2)).Times(1).WillOnce(Return(MeasurementOutcome{.basis = 'Z', .outcome_is_plus = false}));
@@ -164,7 +164,7 @@ TEST_F(ActionExecutionTest, Swapping) {
   runtime->exec();
   ASSERT_EQ(getResourceSizeByRuleId(*runtime, 0), 0);
 
-  runtime->terminated = false;
+  runtime->is_terminated = false;
   EXPECT_CALL(*callback, gateCNOT(qubit1, qubit2)).Times(1);
   EXPECT_CALL(*callback, measureQubitX(qubit1)).Times(1).WillOnce(Return(MeasurementOutcome{.basis = 'X', .outcome_is_plus = false}));
   EXPECT_CALL(*callback, measureQubitZ(qubit2)).Times(1).WillOnce(Return(MeasurementOutcome{.basis = 'Z', .outcome_is_plus = true}));
@@ -195,7 +195,7 @@ TEST_F(ActionExecutionTest, PurifyX) {
   runtime->exec();
   ASSERT_EQ(getResourceSizeByRuleId(*runtime, 0), 0);
 
-  runtime->terminated = false;
+  runtime->is_terminated = false;
 
   EXPECT_CALL(*callback, isQubitLocked(qubit1)).WillRepeatedly(Return(true));
   runtime->assignQubitToRuleSet(partner_addr, qubit3);
