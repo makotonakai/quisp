@@ -85,6 +85,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void releaseBellPairs(int qnic_type, int qnic_index, int first_sequence_number);
   void handleInternalConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
+  void removeRuleSetIdFromActiveLinkAllocationPolicy(unsigned long ruleset_id);
   void sendLinkAllocationUpdateMessages();
   void storeInfoAboutIncomingLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
   void negotiateNextLinkAllocationPolicy(int src_addr);
@@ -120,7 +121,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::map<int, std::vector<unsigned long>> node_address_incoming_active_link_allocations_map;
   std::map<int, std::vector<unsigned long>> node_address_active_link_allocations_map;
   std::map<int, std::vector<unsigned long>> node_address_incoming_next_link_allocations_map;
-  std::map<int, std::vector<unsigned long>> node_address_next_link_allocations_map;
+  std::map<int, std::list<unsigned long>> node_address_next_link_allocations_map;
   std::map<int, int> node_address_incoming_random_number_map;
   std::map<int, int> node_address_random_number_map;
   std::map<int, bool> node_address_lau_sent_map;
@@ -134,6 +135,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   std::map<int, int> terminated_runtime_index_bell_pair_number_map;
   std::map<int, unsigned long> sequence_number_ruleset_id_map;
   std::map<int, unsigned long> sequence_number_runtime_index_map;
+  std::set<int> partner_addresses;
 };
 
 Define_Module(RuleEngine);

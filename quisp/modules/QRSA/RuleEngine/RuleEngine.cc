@@ -4,7 +4,6 @@
  */
 #include "RuleEngine.h"
 #include <unistd.h>
-
 #include <cassert>
 #include <cstddef>
 #include <fstream>
@@ -166,14 +165,17 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto lau_sent = node_address_lau_sent_map[src_addr];
     auto lau_received = node_address_lau_received_map[src_addr];
     if (lau_sent && lau_received) {
-      negotiateNextLinkAllocationPolicy(src_addr);
-      auto src_addr = pkt->getSrcAddr();
-      auto bell_pair_exist = bellPairExist();
-      auto barrier_sent = node_address_barrier_sent_map[src_addr];
-      if (bell_pair_exist && !barrier_sent) {
-        sendBarrierMessage(src_addr);
-      } else {
-        waitForBellPairGeneration(src_addr);
+      auto next_link_allocation_policy_size = pkt->getNextLinkAllocationCount();
+      if (next_link_allocation_policy_size != 0) {
+        negotiateNextLinkAllocationPolicy(src_addr);
+        auto src_addr = pkt->getSrcAddr();
+        auto bell_pair_exist = bellPairExist();
+        auto barrier_sent = node_address_barrier_sent_map[src_addr];
+        if (bell_pair_exist && !barrier_sent) {
+          sendBarrierMessage(src_addr);
+        } else {
+          waitForBellPairGeneration(src_addr);
+        }
       }
     }
   } else if (auto *pkt = dynamic_cast<WaitMessage *>(msg)) {
@@ -202,44 +204,16 @@ void RuleEngine::handleMessage(cMessage *msg) {
         for (int i = 0; i < number_of_qnics; i++) {
           allocateBellPairs(QNIC_E, i, sequence_number);
         }
-        // for (int i = 0; i < number_of_qnics_r; i++) {
-        //   allocateBellPairs(QNIC_R, i, sequence_number);
-        // }
-        // for (int i = 0; i < number_of_qnics_rp; i++) {
-        //   allocateBellPairs(QNIC_RP, i, sequence_number);
-        // }
+        for (int i = 0; i < number_of_qnics_r; i++) {
+          allocateBellPairs(QNIC_R, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_rp; i++) {
+          allocateBellPairs(QNIC_RP, i, sequence_number);
+        }
       }
     }
   }
   executeAllRuleSets();
-
-  std::cout << "[";
-  for (auto i = 0; i < simulation_time_conn1_list.size(); i++) {
-    if (i != 0) std::cout << ", ";
-    std::cout << simulation_time_conn1_list[i];
-  }
-  std::cout << "]" << std::endl;
-
-  std::cout << "[";
-  for (auto i = 0; i < bell_pair_num_conn1_list.size(); i++) {
-    if (i != 0) std::cout << ", ";
-    std::cout << bell_pair_num_conn1_list[i];
-  }
-  std::cout << "]" << std::endl;
-
-  std::cout << "[";
-  for (auto i = 0; i < simulation_time_conn2_list.size(); i++) {
-    if (i != 0) std::cout << ", ";
-    std::cout << simulation_time_conn2_list[i];
-  }
-  std::cout << "]" << std::endl;
-
-  std::cout << "[";
-  for (auto i = 0; i < bell_pair_num_conn2_list.size(); i++) {
-    if (i != 0) std::cout << ", ";
-    std::cout << bell_pair_num_conn2_list[i];
-  }
-  std::cout << "]" << std::endl;
 
   delete msg;
 }
@@ -333,15 +307,19 @@ void RuleEngine::handleInternalConnectionTeardownMessage(InternalConnectionTeard
         for (int i = 0; i < number_of_qnics; i++) {
           releaseBellPairs(QNIC_E, i, sequence_number);
         }
-        // for (int i = 0; i < number_of_qnics_r; i++) {
-        //   releaseBellPairs(QNIC_R, i, sequence_number);
-        // }
-        // for (int i = 0; i < number_of_qnics_rp; i++) {
-        //   releaseBellPairs(QNIC_RP, i, sequence_number);
-        // }
+        for (int i = 0; i < number_of_qnics_r; i++) {
+          releaseBellPairs(QNIC_R, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_rp; i++) {
+          releaseBellPairs(QNIC_RP, i, sequence_number);
+        }
       }
     }
+    auto ruleset_id = it->ruleset.id;
+    removeRuleSetIdFromActiveLinkAllocationPolicy(ruleset_id);
   }
+  sendLinkAllocationUpdateMessages();
+  partner_addresses.clear();
 }
 
 void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
@@ -349,11 +327,27 @@ void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
   runtimes.stopById(ruleset_id);
 }
 
-void RuleEngine::sendLinkAllocationUpdateMessages() {
-  std::set<int> partner_addresses;
-  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+void RuleEngine::removeRuleSetIdFromActiveLinkAllocationPolicy(unsigned long ruleset_id) {
+  auto terminated_runtimes = runtimes.getTerminatedRuntimes();
+  for (auto it = terminated_runtimes.begin(); it != terminated_runtimes.end(); ++it) {
     for (auto partner_address : it->partners) {
-      partner_addresses.insert(partner_address.val);
+      for (auto it2 = node_address_active_link_allocations_map[partner_address.val].begin(); it2 != node_address_active_link_allocations_map[partner_address.val].end();) {
+        if (*it2 == ruleset_id) {
+          node_address_active_link_allocations_map[partner_address.val].erase(it2);
+        } else {
+          ++it2;
+        }
+      }
+    }
+  }
+}
+
+void RuleEngine::sendLinkAllocationUpdateMessages() {
+  if (partner_addresses.size() == 0) {
+    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+      for (auto partner_address : it->partners) {
+        partner_addresses.insert(partner_address.val);
+      }
     }
   }
 
@@ -429,7 +423,10 @@ void RuleEngine::negotiateNextLinkAllocationPolicy(int src_addr) {
   auto incoming_random_number = node_address_incoming_random_number_map[src_addr];
   auto random_number = node_address_random_number_map[src_addr];
   if (incoming_random_number > random_number) {
-    node_address_next_link_allocations_map[src_addr] = node_address_incoming_next_link_allocations_map[src_addr];
+    node_address_next_link_allocations_map[src_addr].clear();
+    for (auto it = node_address_incoming_next_link_allocations_map[src_addr].begin(); it != node_address_incoming_next_link_allocations_map[src_addr].end(); ++it) {
+      node_address_next_link_allocations_map[src_addr].push_back(*it);
+    }
   }
   node_address_barrier_sent_map[src_addr] = false;
   node_address_barrier_received_map[src_addr] = false;
@@ -577,6 +574,21 @@ void RuleEngine::sendConnectionTeardownNotifier(std::vector<unsigned long> rules
 }
 
 void RuleEngine::executeAllRuleSets() {
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      std::vector<unsigned long> next_link_allocations;
+      if (node_address_next_link_allocations_map.find(partner_address.val) != node_address_next_link_allocations_map.end()) {
+        for (auto next_link_allocation : node_address_next_link_allocations_map[partner_address.val]) {
+          next_link_allocations.push_back(next_link_allocation);
+        }
+      }
+      for (auto it2 = next_link_allocations.begin(); it2 != next_link_allocations.end(); ++it2) {
+        node_address_active_link_allocations_map[partner_address.val].push_back(*it2);
+      }
+      node_address_next_link_allocations_map[partner_address.val].clear();
+    }
+  }
+
   runtimes.exec();
   auto terminated_ruleset_id_list = runtimes.getTerminatedRuleSetIDs();
   if (terminated_ruleset_id_list.size() != 0) {
