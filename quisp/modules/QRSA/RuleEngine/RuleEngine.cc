@@ -454,9 +454,7 @@ void RuleEngine::storeInfoAboutBarrierMessage(BarrierMessage *msg) {
 void RuleEngine::negotiateNextSequenceNumber(int src_addr) {
   auto incoming_sequence_number = node_address_incoming_sequence_number_map[src_addr];
   auto sequence_number = node_address_sequence_number_map[src_addr];
-  if (incoming_sequence_number > sequence_number) {
-    node_address_sequence_number_map[src_addr] = incoming_sequence_number;
-  }
+  node_address_sequence_number_map[src_addr] = std::max(incoming_sequence_number, sequence_number);
 }
 
 void RuleEngine::waitForBellPairGeneration(int src_addr) {
