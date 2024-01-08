@@ -1,9 +1,11 @@
 #include "RuntimeManager.h"
+#include <omnetpp/simtime.h>
 #include <algorithm>
 #include <iostream>
 #include <iterator>
 #include <vector>
 #include "RuleSet.h"
+#include "Runtime.h"
 #include "omnetpp/cexception.h"
 #include "runtime/RuleSet.h"
 #include "runtime/types.h"
@@ -24,9 +26,18 @@ std::vector<Runtime>::iterator RuntimeManager::findById(unsigned long long rules
 }
 
 void RuntimeManager::exec() {
+  terminated_ruleset_id_list.clear();
   for (auto it = runtimes.begin(); it != runtimes.end();) {
+    auto ruleset_id = it->ruleset.id;
+    if (!it->is_active && !it->is_terminated) {
+      it->is_active = true;
+    }
     it->exec();
-    if (it->is_terminated) {
+    std::cout << it->return_code << std::endl;
+    if (it->is_active && it->is_terminated) {
+      terminated_ruleset_id_list.push_back(ruleset_id);
+      it->is_active = false;
+      terminated_runtimes.push_back(*it);
       it = runtimes.erase(it);
     } else {
       ++it;
@@ -34,8 +45,15 @@ void RuntimeManager::exec() {
   }
 }
 
+std::list<Runtime> RuntimeManager::getTerminatedRuntimes() { return terminated_runtimes; }
+
+std::vector<unsigned long> RuntimeManager::getTerminatedRuleSetIDs() { return terminated_ruleset_id_list; }
+
 void RuntimeManager::stopById(unsigned long long ruleset_id) {
   auto it = findById(ruleset_id);
+  if (it->is_active) {
+    it->is_active = false;
+  }
   it->is_terminated = true;
 }
 std::vector<QNodeAddr> RuntimeManager::findPartnersById(unsigned long long ruleset_id) {

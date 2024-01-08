@@ -35,7 +35,7 @@ void BellPairStore::eraseQubit(qrsa::IQubitRecord *const qubit) {
   auto it = resource.begin();
   while (it != resource.cend()) {
     if (it->second.second == qubit) {
-      logger->logBellPairInfo("Erased", it->first, it->second.first, qubit->getQNicType(), qubit->getQNicIndex(), qubit->getQubitIndex());
+      logger->logBellPairInfo("Erased", it->second.first, it->first, qubit->getQNicType(), qubit->getQNicIndex(), qubit->getQubitIndex());
       it = resource.erase(it);
     } else
       it++;
@@ -78,7 +78,7 @@ int BellPairStore::getQnicIndexByNumberOfQnicsAndPartnerAddress(int number_of_qn
 
 int BellPairStore::getFirstAvailableSequenceNumber() {
   int sequence_number = -1;
-  for (const auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
+  for (auto &[_sequence_number, is_allocated] : sequence_number_is_allocated_map) {
     if (!is_allocated) {
       sequence_number = _sequence_number;
       break;

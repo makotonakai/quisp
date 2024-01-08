@@ -82,23 +82,23 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
 
   void freeConsumedResource(int qnic_index, IStationaryQubit *qubit, QNIC_type qnic_type);
   void allocateBellPairs(int qnic_type, int qnic_index, int first_sequence_number);
-  void handleConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
+  void releaseBellPairs(int qnic_type, int qnic_index, int first_sequence_number);
+  void handleInternalConnectionTeardownMessage(messages::InternalConnectionTeardownMessage *msg);
   void stopRuleSetExecution(messages::InternalConnectionTeardownMessage *msg);
-  void addAllocatedQNICs(messages::InternalConnectionTeardownMessage *msg);
-  void sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id);
-  void sendLinkAllocationUpdateMessage(messages::LinkAllocationUpdateNotifier *msg);
+  void removeRuleSetIdFromActiveLinkAllocationPolicy(unsigned long ruleset_id);
+  void sendLinkAllocationUpdateMessages();
   void storeInfoAboutIncomingLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
   void negotiateNextLinkAllocationPolicy(int src_addr);
   void sendBarrierMessage(int src_addr);
   void waitForBellPairGeneration(int src_addr);
   void keepWaitingForBellPairGeneration(messages::WaitMessage *msg);
-  void sendLinkAllocationUpdateMessageForConnectionTeardown(messages::InternalConnectionTeardownMessage *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
   void executeAllRuleSets();
   unsigned long getRuleSetIdBySequenceNumber(int sequence_number);
   bool bellPairExist();
   void storeInfoAboutBarrierMessage(messages::BarrierMessage *msg);
   void negotiateNextSequenceNumber(int src_addr);
+  void sendConnectionTeardownNotifier(std::vector<unsigned long> ruleset_id_list);
 
  protected:
   void initialize() override;
@@ -118,19 +118,24 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   runtime::RuntimeManager runtimes;
   std::unordered_map<std::pair<QNIC_type, int>, messages::EmitPhotonRequest *> emit_photon_timer_map;
   std::unordered_map<std::pair<QNIC_type, int>, std::vector<int>> emitted_photon_order_map;
-  std::unordered_map<int, std::vector<unsigned long>> node_address_incoming_active_link_allocations_map;
-  std::unordered_map<int, std::vector<unsigned long>> node_address_active_link_allocations_map;
-  std::unordered_map<int, std::vector<unsigned long>> node_address_incoming_next_link_allocations_map;
-  std::unordered_map<int, std::vector<unsigned long>> node_address_next_link_allocations_map;
-  std::unordered_map<int, int> node_address_incoming_random_number_map;
-  std::unordered_map<int, int> node_address_random_number_map;
-  std::unordered_map<int, bool> node_address_lau_sent_map;
-  std::unordered_map<int, bool> node_address_lau_received_map;
-  std::unordered_map<int, std::vector<int>> node_address_neighbor_addresses_map;
-  std::unordered_map<int, bool> node_address_barrier_sent_map;
-  std::unordered_map<int, bool> node_address_barrier_received_map;
-  std::unordered_map<int, int> node_address_incoming_sequence_number_map;
-  std::unordered_map<int, int> node_address_sequence_number_map;
+  std::map<int, std::vector<unsigned long>> node_address_incoming_active_link_allocations_map;
+  std::map<int, std::vector<unsigned long>> node_address_active_link_allocations_map;
+  std::map<int, std::vector<unsigned long>> node_address_incoming_next_link_allocations_map;
+  std::map<int, std::list<unsigned long>> node_address_next_link_allocations_map;
+  std::map<int, int> node_address_incoming_random_number_map;
+  std::map<int, int> node_address_random_number_map;
+  std::map<int, bool> node_address_lau_sent_map;
+  std::map<int, bool> node_address_lau_received_map;
+  std::map<int, std::vector<int>> node_address_neighbor_addresses_map;
+  std::map<int, bool> node_address_barrier_sent_map;
+  std::map<int, bool> node_address_barrier_received_map;
+  std::map<int, int> node_address_incoming_sequence_number_map;
+  std::map<int, int> node_address_sequence_number_map;
+  std::map<int, int> runtime_index_bell_pair_number_map;
+  std::map<int, int> terminated_runtime_index_bell_pair_number_map;
+  std::map<int, unsigned long> sequence_number_ruleset_id_map;
+  std::map<int, unsigned long> sequence_number_runtime_index_map;
+  std::set<int> partner_addresses;
 };
 
 Define_Module(RuleEngine);

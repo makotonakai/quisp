@@ -159,7 +159,7 @@ struct RuntimeCallback : public quisp::runtime::Runtime::ICallBack {
     ConnectionTeardownMessage *pkt = new ConnectionTeardownMessage("ConnectionTeardownMessage");
     pkt->setSrcAddr(rule_engine->parentAddress);
     pkt->setDestAddr(parner_addr.val);
-    pkt->setRuleSet_id(ruleset_id);
+    pkt->setRuleSetId(ruleset_id);
     pkt->setKind(8);
     rule_engine->send(pkt, "RouterPort$o");
   }

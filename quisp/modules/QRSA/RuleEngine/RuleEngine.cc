@@ -4,17 +4,18 @@
  */
 #include "RuleEngine.h"
 #include <unistd.h>
-
 #include <cassert>
 #include <cstddef>
 #include <fstream>
 #include <iterator>
+#include <map>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "BellPairStore/BellPairStore.h"
 #include "QNicStore/QNicStore.h"
 #include "RuntimeCallback.h"
 #include "messages/QNode_ipc_messages_m.h"
@@ -27,6 +28,8 @@
 #include "rules/RuleSet.h"
 #include "runtime/RuleSet.h"
 #include "runtime/Runtime.h"
+
+using quisp::runtime::Runtime;
 
 namespace quisp::modules {
 
@@ -84,8 +87,6 @@ void RuleEngine::initialize() {
 void RuleEngine::handleMessage(cMessage *msg) {
   logger->logPacket("handleRuleEngineMessage", msg);
 
-  // executeAllRuleSets();  // New resource added to QNIC with qnic_type qnic_index.
-
   if (auto *notification_packet = dynamic_cast<BSMTimingNotification *>(msg)) {
     if (auto *bsa_results = dynamic_cast<CombinedBSAresults *>(msg)) {
       handleLinkGenerationResult(bsa_results);
@@ -127,51 +128,54 @@ void RuleEngine::handleMessage(cMessage *msg) {
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
+    sendLinkAllocationUpdateMessages();
   } else if (auto *pkt = dynamic_cast<InternalRuleSetForwarding_Application *>(msg)) {
     if (pkt->getApplication_type() != 0) error("This application is not recognized yet");
     auto serialized_ruleset = pkt->getRuleSet();
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
-  } else if (auto *pkt = dynamic_cast<InternalNodeAddressesAlongPathForwarding *>(msg)) {
-    auto ruleset_id = pkt->getRuleSet_id();
-    for (auto index = 0; index < pkt->getNode_addresses_along_pathArraySize(); index++) {
-      ruleset_id_node_addresses_along_path_map[ruleset_id].push_back(pkt->getNode_addresses_along_path(index));
-    }
-  } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateNotifier *>(msg)) {
-    sendLinkAllocationUpdateMessage(pkt);
-    auto src_addr = pkt->getSrcAddr();
-    auto neighbor_addresses = node_address_neighbor_addresses_map[src_addr];
-    for (auto neighbor_address : neighbor_addresses) {
-      auto lau_sent = node_address_lau_sent_map[neighbor_address];
-      auto lau_received = node_address_lau_received_map[neighbor_address];
-      if (lau_sent && lau_received) {
-        negotiateNextLinkAllocationPolicy(neighbor_address);
-        auto bell_pair_exist = bellPairExist();
-        auto barrier_sent = node_address_barrier_sent_map[src_addr];
-        if (bell_pair_exist && !barrier_sent) {
-          sendBarrierMessage(neighbor_address);
-        } else {
-          waitForBellPairGeneration(neighbor_address);
+
+    sendLinkAllocationUpdateMessages();
+
+    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+      for (auto partner_addr : it->partners) {
+        auto lau_sent = true;
+        auto lau_received = false;
+        if (node_address_lau_received_map.find(partner_addr.val) != node_address_lau_received_map.end()) {
+          lau_received = node_address_lau_received_map[partner_addr.val];
+        }
+        if (lau_sent && lau_received) {
+          negotiateNextLinkAllocationPolicy(partner_addr.val);
+          auto bell_pair_exist = bellPairExist();
+          auto barrier_sent = node_address_barrier_sent_map[partner_addr.val];
+          if (bell_pair_exist && !barrier_sent) {
+            sendBarrierMessage(partner_addr.val);
+          } else {
+            waitForBellPairGeneration(partner_addr.val);
+          }
         }
       }
     }
   } else if (auto *pkt = dynamic_cast<InternalConnectionTeardownMessage *>(msg)) {
-    handleConnectionTeardownMessage(pkt);
+    handleInternalConnectionTeardownMessage(pkt);
   } else if (auto *pkt = dynamic_cast<LinkAllocationUpdateMessage *>(msg)) {
     storeInfoAboutIncomingLinkAllocationUpdateMessage(pkt);
     auto src_addr = pkt->getSrcAddr();
     auto lau_sent = node_address_lau_sent_map[src_addr];
     auto lau_received = node_address_lau_received_map[src_addr];
     if (lau_sent && lau_received) {
-      negotiateNextLinkAllocationPolicy(src_addr);
-      auto src_addr = pkt->getSrcAddr();
-      auto bell_pair_exist = bellPairExist();
-      auto barrier_sent = node_address_barrier_sent_map[src_addr];
-      if (bell_pair_exist && !barrier_sent) {
-        sendBarrierMessage(src_addr);
-      } else {
-        waitForBellPairGeneration(src_addr);
+      auto next_link_allocation_policy_size = pkt->getNextLinkAllocationCount();
+      if (next_link_allocation_policy_size != 0) {
+        negotiateNextLinkAllocationPolicy(src_addr);
+        auto src_addr = pkt->getSrcAddr();
+        auto bell_pair_exist = bellPairExist();
+        auto barrier_sent = node_address_barrier_sent_map[src_addr];
+        if (bell_pair_exist && !barrier_sent) {
+          sendBarrierMessage(src_addr);
+        } else {
+          waitForBellPairGeneration(src_addr);
+        }
       }
     }
   } else if (auto *pkt = dynamic_cast<WaitMessage *>(msg)) {
@@ -190,19 +194,27 @@ void RuleEngine::handleMessage(cMessage *msg) {
     auto barrier_received = node_address_barrier_received_map[src_addr];
     if (barrier_sent && barrier_received) {
       negotiateNextSequenceNumber(src_addr);
-      auto sequence_number = node_address_sequence_number_map[src_addr];
-      for (int i = 0; i < number_of_qnics; i++) {
-        allocateBellPairs(QNIC_E, i, sequence_number);
-      }
-      for (int i = 0; i < number_of_qnics_r; i++) {
-        allocateBellPairs(QNIC_R, i, sequence_number);
-      }
-      for (int i = 0; i < number_of_qnics_rp; i++) {
-        allocateBellPairs(QNIC_RP, i, sequence_number);
-      }
-      executeAllRuleSets();
     }
   }
+
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      if (node_address_sequence_number_map.find(partner_address.val) != node_address_sequence_number_map.end()) {
+        auto sequence_number = node_address_sequence_number_map[partner_address.val];
+        for (int i = 0; i < number_of_qnics; i++) {
+          allocateBellPairs(QNIC_E, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_r; i++) {
+          allocateBellPairs(QNIC_R, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_rp; i++) {
+          allocateBellPairs(QNIC_RP, i, sequence_number);
+        }
+      }
+    }
+  }
+  executeAllRuleSets();
+
   delete msg;
 }
 
@@ -285,108 +297,107 @@ void RuleEngine::handleSwappingResult(SwappingResult *result) {
   runtime->assignMessageToRuleSet(shared_rule_tag, message_content);
 }
 
-void RuleEngine::handleConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) {
-  addAllocatedQNICs(msg);
+void RuleEngine::handleInternalConnectionTeardownMessage(InternalConnectionTeardownMessage *msg) {
   stopRuleSetExecution(msg);
-}
-
-void RuleEngine::addAllocatedQNICs(InternalConnectionTeardownMessage *msg) {
-  auto ruleset_id = msg->getRuleSet_id();
-  auto num_of_qnics = msg->getStack_of_QNICAddressesArraySize();
-  for (auto index = 0; index < num_of_qnics; index++) {
-    ruleset_id_qnic_addresses_map[ruleset_id].push_back(msg->getStack_of_QNICAddresses(index));
+  auto terminated_runtimes = runtimes.getTerminatedRuntimes();
+  for (auto it = terminated_runtimes.begin(); it != terminated_runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      if (node_address_sequence_number_map.find(partner_address.val) != node_address_sequence_number_map.end()) {
+        auto sequence_number = node_address_sequence_number_map[partner_address.val];
+        for (int i = 0; i < number_of_qnics; i++) {
+          releaseBellPairs(QNIC_E, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_r; i++) {
+          releaseBellPairs(QNIC_R, i, sequence_number);
+        }
+        for (int i = 0; i < number_of_qnics_rp; i++) {
+          releaseBellPairs(QNIC_RP, i, sequence_number);
+        }
+      }
+    }
+    auto ruleset_id = it->ruleset.id;
+    removeRuleSetIdFromActiveLinkAllocationPolicy(ruleset_id);
   }
+  sendLinkAllocationUpdateMessages();
+  partner_addresses.clear();
 }
 
 void RuleEngine::stopRuleSetExecution(InternalConnectionTeardownMessage *msg) {
-  auto ruleset_id = msg->getRuleSet_id();
+  auto ruleset_id = msg->getRuleSetId();
   runtimes.stopById(ruleset_id);
 }
 
-void RuleEngine::sendConnectionTeardownMessageForRuleSet(unsigned long ruleset_id) {
-  auto node_addresses_along_path = (std::vector<int>)ruleset_id_node_addresses_along_path_map[ruleset_id];
-  for (int index = 0; index < node_addresses_along_path.size(); index++) {
-    auto pkt = new ConnectionTeardownMessage();
-    pkt->setSrcAddr(parentAddress);
-    pkt->setDestAddr(node_addresses_along_path.at(index));
-    pkt->setActual_srcAddr(parentAddress);
-    pkt->setActual_destAddr(node_addresses_along_path.at(index));
-    if (index == 0) {
-      pkt->setLAU_destAddr_left(-1);
-    } else {
-      pkt->setLAU_destAddr_left(node_addresses_along_path.at(index - 1));
-    }
-    if (index == node_addresses_along_path.size() - 1) {
-      pkt->setLAU_destAddr_right(-1);
-    } else {
-      pkt->setLAU_destAddr_right(node_addresses_along_path.at(index + 1));
-    }
-    pkt->setRuleSet_id(ruleset_id);
-    send(pkt, "RouterPort$o");
-  }
-}
-
-void RuleEngine::sendLinkAllocationUpdateMessageForConnectionTeardown(InternalConnectionTeardownMessage *msg) {
-  if (msg->getLAU_destAddr_left() != -1) {
-    LinkAllocationUpdateMessage *pkt1 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt1->setSrcAddr(msg->getDestAddr());
-    pkt1->setDestAddr(msg->getLAU_destAddr_left());
-    pkt1->setActiveLinkAllocationsArraySize(runtimes.size());
-    auto index = 0;
-    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
-      pkt1->appendActiveLinkAllocation(it->ruleset.id);
-      index += 1;
-    }
-    pkt1->setRandomNumber(rand());
-    send(pkt1, "RouterPort$o");
-  }
-  if (msg->getLAU_destAddr_right() != -1) {
-    LinkAllocationUpdateMessage *pkt2 = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt2->setSrcAddr(msg->getDestAddr());
-    pkt2->setDestAddr(msg->getLAU_destAddr_left());
-    pkt2->setActiveLinkAllocationsArraySize(runtimes.size());
-    auto index = 0;
-    for (auto it = runtimes.begin(); it < runtimes.end(); ++it) {
-      pkt2->appendActiveLinkAllocation(it->ruleset.id);
-      index += 1;
-    }
-    pkt2->setRandomNumber(rand());
-    send(pkt2, "RouterPort$o");
-  }
-}
-
-void RuleEngine::sendLinkAllocationUpdateMessage(LinkAllocationUpdateNotifier *msg) {
-  auto src_addr = msg->getSrcAddr();
-  auto random_number = rand();
-  node_address_random_number_map[src_addr] = random_number;
-
-  auto num_neighbors = msg->getStack_of_NeighboringQNodeIndicesArraySize();
-  for (auto i = 0; i < num_neighbors; i++) {
-    node_address_neighbor_addresses_map[src_addr].push_back(msg->getStack_of_NeighboringQNodeIndices(i));
-  }
-
-  auto neighbor_addresses = node_address_neighbor_addresses_map[src_addr];
-  for (auto neighbor_address : neighbor_addresses) {
-    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
-    pkt->setSrcAddr(parentAddress);
-    pkt->setDestAddr(neighbor_address);
-
-    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
-      if (it->is_active) {
-        pkt->appendActiveLinkAllocation(it->ruleset.id);
-        node_address_active_link_allocations_map[neighbor_address].push_back(it->ruleset.id);
-      } else {
-        pkt->appendNextLinkAllocation(it->ruleset.id);
-        node_address_next_link_allocations_map[neighbor_address].push_back(it->ruleset.id);
+void RuleEngine::removeRuleSetIdFromActiveLinkAllocationPolicy(unsigned long ruleset_id) {
+  auto terminated_runtimes = runtimes.getTerminatedRuntimes();
+  for (auto it = terminated_runtimes.begin(); it != terminated_runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      for (auto it2 = node_address_active_link_allocations_map[partner_address.val].begin(); it2 != node_address_active_link_allocations_map[partner_address.val].end();) {
+        if (*it2 == ruleset_id) {
+          node_address_active_link_allocations_map[partner_address.val].erase(it2);
+        } else {
+          ++it2;
+        }
       }
     }
+  }
+}
+
+void RuleEngine::sendLinkAllocationUpdateMessages() {
+  if (partner_addresses.size() == 0) {
+    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+      for (auto partner_address : it->partners) {
+        partner_addresses.insert(partner_address.val);
+      }
+    }
+  }
+
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      std::vector<int> active_link_allocations;
+      if (node_address_active_link_allocations_map.find(partner_address.val) != node_address_active_link_allocations_map.end()) {
+        for (auto active_link_allocation : node_address_active_link_allocations_map[partner_address.val]) {
+          active_link_allocations.push_back(active_link_allocation);
+        }
+      }
+
+      std::vector<int> next_link_allocations;
+      if (node_address_next_link_allocations_map.find(partner_address.val) != node_address_next_link_allocations_map.end()) {
+        for (auto next_link_allocation : node_address_next_link_allocations_map[partner_address.val]) {
+          next_link_allocations.push_back(next_link_allocation);
+        }
+      }
+
+      if (it->is_active && std::find(active_link_allocations.begin(), active_link_allocations.end(), it->ruleset.id) == active_link_allocations.end()) {
+        node_address_active_link_allocations_map[partner_address.val].push_back(it->ruleset.id);
+      }
+      if (!it->is_active && std::find(next_link_allocations.begin(), next_link_allocations.end(), it->ruleset.id) == next_link_allocations.end()) {
+        node_address_next_link_allocations_map[partner_address.val].push_back(it->ruleset.id);
+      }
+    }
+  }
+
+  for (auto partner_address : partner_addresses) {
+    LinkAllocationUpdateMessage *pkt = new LinkAllocationUpdateMessage("LinkAllocationUpdateMessage");
+    pkt->setSrcAddr(parentAddress);
+    pkt->setDestAddr(partner_address);
+
+    auto active_link_allocations = node_address_active_link_allocations_map[partner_address];
+    for (auto active_link_allocation : active_link_allocations) {
+      pkt->appendActiveLinkAllocation(active_link_allocation);
+    }
+
+    auto next_link_allocations = node_address_next_link_allocations_map[partner_address];
+    for (auto next_link_allocation : next_link_allocations) {
+      pkt->appendNextLinkAllocation(next_link_allocation);
+    }
+
+    auto random_number = rand();
+    node_address_random_number_map[partner_address] = random_number;
 
     pkt->setRandomNumber(random_number);
     send(pkt, "RouterPort$o");
 
-    for (auto neighbor_address : neighbor_addresses) {
-      node_address_lau_sent_map[neighbor_address] = true;
-    }
+    node_address_lau_sent_map[partner_address] = true;
   }
 }
 
@@ -412,7 +423,10 @@ void RuleEngine::negotiateNextLinkAllocationPolicy(int src_addr) {
   auto incoming_random_number = node_address_incoming_random_number_map[src_addr];
   auto random_number = node_address_random_number_map[src_addr];
   if (incoming_random_number > random_number) {
-    node_address_next_link_allocations_map[src_addr] = node_address_incoming_next_link_allocations_map[src_addr];
+    node_address_next_link_allocations_map[src_addr].clear();
+    for (auto it = node_address_incoming_next_link_allocations_map[src_addr].begin(); it != node_address_incoming_next_link_allocations_map[src_addr].end(); ++it) {
+      node_address_next_link_allocations_map[src_addr].push_back(*it);
+    }
   }
   node_address_barrier_sent_map[src_addr] = false;
   node_address_barrier_received_map[src_addr] = false;
@@ -440,9 +454,7 @@ void RuleEngine::storeInfoAboutBarrierMessage(BarrierMessage *msg) {
 void RuleEngine::negotiateNextSequenceNumber(int src_addr) {
   auto incoming_sequence_number = node_address_incoming_sequence_number_map[src_addr];
   auto sequence_number = node_address_sequence_number_map[src_addr];
-  if (incoming_sequence_number > sequence_number) {
-    node_address_sequence_number_map[src_addr] = incoming_sequence_number;
-  }
+  node_address_sequence_number_map[src_addr] = std::max(incoming_sequence_number, sequence_number);
 }
 
 void RuleEngine::waitForBellPairGeneration(int src_addr) {
@@ -469,20 +481,79 @@ bool RuleEngine::bellPairExist() {
 // Invoked whenever a new resource (entangled with neighbor) has been created.
 // Allocates those resources to a particular ruleset, from top to bottom (all of it).
 void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequence_number) {
-  for (auto i = 0; i < runtimes.size(); i++) {
-    auto &partners = runtimes.at(i).partners;
-    for (auto &partner_addr : partners) {
-      auto range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr.val);
-      for (auto it = range.first; it != range.second; ++it) {
-        auto sequence_number = it->first;
-        if (first_sequence_number <= sequence_number) {
-          auto qubit_record = it->second.second;
+  std::map<int, std::vector<int>> partner_addr_runtime_indices_map;
+  auto index = 0;
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    auto partners = it->partners;
+    for (auto partner : partners) {
+      partner_addr_runtime_indices_map[partner.val].push_back(index);
+    }
+    index += 1;
+  }
 
-          // 3. if the qubit is not allocated yet, and the qubit has not been allocated to this rule,
-          // if the qubit has already been assigned to the rule, the qubit is not allocatable to that rule
-          if (!qubit_record->isAllocated()) {  //&& !qubit_record->isRuleApplied((*rule)->rule_id
-            qubit_record->setAllocated(true);
-            runtimes.at(i).assignQubitToRuleSet(partner_addr, qubit_record);
+  for (const auto &[partner_addr, _] : partner_addr_runtime_indices_map) {
+    auto runtime_indices = partner_addr_runtime_indices_map[partner_addr];
+    auto bell_pair_range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr);
+
+    auto bell_pair_num = 0;
+    for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
+      bell_pair_num += 1;
+    }
+
+    auto number = 0;
+    for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
+      auto sequence_number_qubit_record = it->second;
+      auto sequence_number = sequence_number_qubit_record.first;
+      if (first_sequence_number <= sequence_number) {
+        auto qubit_record = sequence_number_qubit_record.second;
+        if (!qubit_record->isAllocated()) {
+          qubit_record->setAllocated(true);
+          auto index = number * runtime_indices.size() / bell_pair_num;
+          auto runtime_index = runtime_indices[index];
+          runtimes.at(runtime_index).assignQubitToRuleSet(partner_addr, qubit_record);
+          sequence_number_ruleset_id_map[sequence_number] = runtimes.at(runtime_index).ruleset.id;
+          if (runtime_index_bell_pair_number_map.find(runtime_index) == runtime_index_bell_pair_number_map.end()) {
+            runtime_index_bell_pair_number_map[runtime_index] = 0;
+          } else {
+            runtime_index_bell_pair_number_map[runtime_index] = runtime_index_bell_pair_number_map[runtime_index] + 1;
+          }
+          sequence_number_runtime_index_map[sequence_number] = runtime_index;
+        }
+      }
+      number += 1;
+    }
+  }
+}
+
+void RuleEngine::releaseBellPairs(int qnic_type, int qnic_index, int first_sequence_number) {
+  std::map<int, std::vector<int>> partner_addr_terminated_runtime_indices_map;
+  auto index = 0;
+  auto terminated_runtimes = runtimes.getTerminatedRuntimes();
+  for (auto it = terminated_runtimes.begin(); it != terminated_runtimes.end(); ++it) {
+    auto partners = it->partners;
+    for (auto partner : partners) {
+      partner_addr_terminated_runtime_indices_map[partner.val].push_back(index);
+    }
+    index += 1;
+  }
+
+  for (const auto &[partner_addr, _] : partner_addr_terminated_runtime_indices_map) {
+    auto terminated_runtime_indices = partner_addr_terminated_runtime_indices_map[partner_addr];
+    auto bell_pair_range = bell_pair_store.getBellPairsRange((QNIC_type)qnic_type, qnic_index, partner_addr);
+
+    for (auto it = bell_pair_range.first; it != bell_pair_range.second; ++it) {
+      auto sequence_number_qubit_record = it->second;
+      auto sequence_number = sequence_number_qubit_record.first;
+      auto qubit_record = sequence_number_qubit_record.second;
+      auto ruleset_id = sequence_number_ruleset_id_map[sequence_number];
+      if (qubit_record->isAllocated()) {
+        qubit_record->setAllocated(false);
+        auto terminated_runtimes = runtimes.getTerminatedRuntimes();
+        for (auto rt = terminated_runtimes.begin(); rt != terminated_runtimes.end(); ++rt) {
+          if (rt->ruleset.id == ruleset_id) {
+            rt->freeQubitFromRuleSet(partner_addr, qubit_record);
+            auto runtime_index = sequence_number_runtime_index_map[sequence_number];
+            runtime_index_bell_pair_number_map[runtime_index] = runtime_index_bell_pair_number_map[runtime_index] - 1;
           }
         }
       }
@@ -490,7 +561,38 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
   }
 }
 
-void RuleEngine::executeAllRuleSets() { runtimes.exec(); }
+void RuleEngine::sendConnectionTeardownNotifier(std::vector<unsigned long> ruleset_id_list) {
+  ConnectionTeardownNotifier *pkt = new ConnectionTeardownNotifier("ConnectionTeardownNotifier");
+  pkt->setSrcAddr(parentAddress);
+  pkt->setDestAddr(parentAddress);
+  for (auto ruleset_id : ruleset_id_list) {
+    pkt->appendRuleSetId(ruleset_id);
+  }
+  send(pkt, "RouterPort$o");
+}
+
+void RuleEngine::executeAllRuleSets() {
+  for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+    for (auto partner_address : it->partners) {
+      std::vector<unsigned long> next_link_allocations;
+      if (node_address_next_link_allocations_map.find(partner_address.val) != node_address_next_link_allocations_map.end()) {
+        for (auto next_link_allocation : node_address_next_link_allocations_map[partner_address.val]) {
+          next_link_allocations.push_back(next_link_allocation);
+        }
+      }
+      for (auto it2 = next_link_allocations.begin(); it2 != next_link_allocations.end(); ++it2) {
+        node_address_active_link_allocations_map[partner_address.val].push_back(*it2);
+      }
+      node_address_next_link_allocations_map[partner_address.val].clear();
+    }
+  }
+
+  runtimes.exec();
+  auto terminated_ruleset_id_list = runtimes.getTerminatedRuleSetIDs();
+  if (terminated_ruleset_id_list.size() != 0) {
+    sendConnectionTeardownNotifier(terminated_ruleset_id_list);
+  }
+}
 
 void RuleEngine::freeConsumedResource(int qnic_index /*Not the address!!!*/, IStationaryQubit *qubit, QNIC_type qnic_type) {
   auto *qubit_record = qnic_store->getQubitRecord(qnic_type, qnic_index, qubit->par("stationary_qubit_address"));

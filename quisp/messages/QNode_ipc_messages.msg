@@ -46,8 +46,3 @@ packet InternalRuleSetForwarding_Application extends Header{
 
     json RuleSet;
 }
-
-packet InternalNodeAddressesAlongPathForwarding extends Header{
-    unsigned long RuleSet_id;
-    int node_addresses_along_path[];
-}
