@@ -14,12 +14,11 @@
 #include "IRuleEngine.h"
 #include "QNicStore/IQNicStore.h"
 #include "QubitRecord/IQubitRecord.h"
+#include "messages/BSA_ipc_messages_m.h"
 #include "messages/barrier_messages_m.h"
 #include "messages/classical_messages.h"
 #include "messages/connection_teardown_messages_m.h"
 #include "messages/link_allocation_update_messages_m.h"
-#include "messages/BSA_ipc_messages_m.h"
-#include "messages/classical_messages.h"
 #include "messages/link_generation_messages_m.h"
 #include "modules/Logger/LoggerBase.h"
 #include "modules/QNIC.h"
@@ -96,7 +95,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void waitForBellPairGeneration(int src_addr);
   void keepWaitingForBellPairGeneration(messages::WaitMessage *msg);
   std::vector<unsigned long long> getActiveLinkAllcations();
-  void executeAllRuleSets();
   unsigned long getRuleSetIdBySequenceNumber(int sequence_number);
   bool bellPairExist();
   void storeInfoAboutBarrierMessage(messages::BarrierMessage *msg);
