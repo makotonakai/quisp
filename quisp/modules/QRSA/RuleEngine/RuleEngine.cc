@@ -372,7 +372,7 @@ void RuleEngine::handleMSMResult(MSMResult *msm_result) {
     // restrict correction operation only on one side
     bool is_younger_address = parentAddress < msm_info.partner_address;
     if (is_phi_minus && is_younger_address) realtime_controller->applyZGate(qubit_record);
-    bell_pair_store.insertEntangledQubit(msm_info.partner_address, qubit_record);
+    bell_pair_store.insertEntangledQubit(msm_info.photon_index_counter, msm_info.partner_address, qubit_record);
   }
 }
 
