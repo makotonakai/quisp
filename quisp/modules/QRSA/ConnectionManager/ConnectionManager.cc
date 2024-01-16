@@ -491,7 +491,7 @@ void ConnectionManager::intermediate_reject_req_handler(RejectConnectionSetupReq
 unsigned long ConnectionManager::createUniqueId() {
   std::string time = SimTime().str();
   std::string address = std::to_string(my_address);
-  std::string random = std::to_string(intuniform(0, 10000000));
+  std::string random = std::to_string(rand());
   std::string hash_seed = address + time + random;
   std::hash<std::string> hash_fn;
   size_t t = hash_fn(hash_seed);
