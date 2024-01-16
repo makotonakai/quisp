@@ -14,12 +14,11 @@
 #include "IRuleEngine.h"
 #include "QNicStore/IQNicStore.h"
 #include "QubitRecord/IQubitRecord.h"
+#include "messages/BSA_ipc_messages_m.h"
 #include "messages/barrier_messages_m.h"
 #include "messages/classical_messages.h"
 #include "messages/connection_teardown_messages_m.h"
 #include "messages/link_allocation_update_messages_m.h"
-#include "messages/BSA_ipc_messages_m.h"
-#include "messages/classical_messages.h"
 #include "messages/link_generation_messages_m.h"
 #include "modules/Logger/LoggerBase.h"
 #include "modules/QNIC.h"
@@ -112,7 +111,6 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void handleSwappingResult(messages::SwappingResult *swapping_result);
   void handleSingleClickResult(messages::SingleClickResult *click_result);
   messages::CombinedBSAresults *generateCombinedBSAresults(int qnic_index);
-  void executeAllRuleSets();
   void sendEmitPhotonSignalToQnic(QNIC_type qnic_type, int qnic_index, int qubit_index, bool is_first, bool is_last);
   void stopOnGoingPhotonEmission(QNIC_type qnic_type, int qnic_index);
   void freeFailedEntanglementAttemptQubits(QNIC_type qnic_type, int qnic_index);
