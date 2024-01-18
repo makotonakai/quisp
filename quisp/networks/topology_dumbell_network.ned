@@ -24,6 +24,47 @@ import modules.Logger.Logger;
 import modules.SharedResource.SharedResource;
 
 // Dumbell MM network with four end nodes
+network topology_dumbell_MM_three_end_nodes
+{
+    parameters:
+        **.speed_of_light_in_fiber = 205336.986301 km;
+    submodules:
+        backend: Backend;
+        logger: Logger;
+        sharedResource: SharedResource;
+        EndNode1: QNode {
+            address = 1;
+            node_type = "EndNode";
+            @display("i=COMP;p=152,238");
+        }
+        EndNode2: QNode {
+            address = 2;
+            node_type = "EndNode";
+            @display("i=COMP;p=324,245");
+        }
+        Repeater1: QNode {
+            address = 7;
+            node_type = "Repeater";
+            @display("i=RTR;p=66,124");
+        }
+        Repeater2: QNode {
+            address = 8;
+            node_type = "Repeater";
+            @display("i=RTR;p=132,36");
+        }
+
+    connections:
+        EndNode1.port++ <--> ClassicalChannel {  distance = 10km; } <--> Repeater1.port++;
+        EndNode2.port++ <--> ClassicalChannel {  distance = 10km; } <--> Repeater1.port++;
+        Repeater1.port++ <--> ClassicalChannel {  distance = 10km; } <--> Repeater2.port++;
+
+        EndNode1.quantum_port_receiver++ <--> QuantumChannel {  distance = 10km; } <--> Repeater1.quantum_port++;
+        EndNode2.quantum_port_receiver++ <--> QuantumChannel {  distance = 10km; } <--> Repeater1.quantum_port++;
+        Repeater1.quantum_port_receiver++ <--> QuantumChannel {  distance = 10km; } <--> Repeater2.quantum_port++;
+}
+
+
+// Dumbell MM network with four end nodes
 network topology_dumbell_MM_four_end_nodes
 {
     parameters:
