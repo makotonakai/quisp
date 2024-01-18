@@ -183,27 +183,35 @@ void RuleEngine::handleMessage(cMessage *msg) {
     RuleSet ruleset(0, 0);
     ruleset.deserialize_json(serialized_ruleset);
     runtimes.acceptRuleSet(ruleset.construct());
-  } else if (auto *pkt = dynamic_cast<InternalRuleSetForwarding_Application *>(msg)) {
-    if (pkt->getApplication_type() != 0) error("This application is not recognized yet");
-    auto serialized_ruleset = pkt->getRuleSet();
-    RuleSet ruleset(0, 0);
-    ruleset.deserialize_json(serialized_ruleset);
-    runtimes.acceptRuleSet(ruleset.construct());
-  } else if (auto *pkt = dynamic_cast<InternalRuleSetForwarding *>(msg)) {
-    // add actual process
-    auto serialized_ruleset = pkt->getRuleSet();
-    RuleSet ruleset(0, 0);
-    ruleset.deserialize_json(serialized_ruleset);
-    runtimes.acceptRuleSet(ruleset.construct());
-    sendLinkAllocationUpdateMessages();
-  } else if (auto *pkt = dynamic_cast<InternalRuleSetForwarding_Application *>(msg)) {
-    if (pkt->getApplication_type() != 0) error("This application is not recognized yet");
-    auto serialized_ruleset = pkt->getRuleSet();
-    RuleSet ruleset(0, 0);
-    ruleset.deserialize_json(serialized_ruleset);
-    runtimes.acceptRuleSet(ruleset.construct());
-    sendLinkAllocationUpdateMessages();
 
+    sendLinkAllocationUpdateMessages();
+    for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
+      for (auto partner_addr : it->partners) {
+        auto lau_sent = true;
+        auto lau_received = false;
+        if (node_address_lau_received_map.find(partner_addr.val) != node_address_lau_received_map.end()) {
+          lau_received = node_address_lau_received_map[partner_addr.val];
+        }
+        if (lau_sent && lau_received) {
+          negotiateNextLinkAllocationPolicy(partner_addr.val);
+          auto bell_pair_exist = bellPairExist();
+          auto barrier_sent = node_address_barrier_sent_map[partner_addr.val];
+          if (bell_pair_exist && !barrier_sent) {
+            sendBarrierMessage(partner_addr.val);
+          } else {
+            waitForBellPairGeneration(partner_addr.val);
+          }
+        }
+      }
+    }
+  } else if (auto *pkt = dynamic_cast<InternalRuleSetForwarding_Application *>(msg)) {
+    if (pkt->getApplication_type() != 0) error("This application is not recognized yet");
+    auto serialized_ruleset = pkt->getRuleSet();
+    RuleSet ruleset(0, 0);
+    ruleset.deserialize_json(serialized_ruleset);
+    runtimes.acceptRuleSet(ruleset.construct());
+
+    sendLinkAllocationUpdateMessages();
     for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
       for (auto partner_addr : it->partners) {
         auto lau_sent = true;
@@ -718,11 +726,8 @@ void RuleEngine::executeAllRuleSets() {
       std::vector<unsigned long> next_link_allocations;
       if (node_address_next_link_allocations_map.find(partner_address.val) != node_address_next_link_allocations_map.end()) {
         for (auto next_link_allocation : node_address_next_link_allocations_map[partner_address.val]) {
-          next_link_allocations.push_back(next_link_allocation);
+          node_address_active_link_allocations_map[partner_address.val].push_back(next_link_allocation);
         }
-      }
-      for (auto it2 = next_link_allocations.begin(); it2 != next_link_allocations.end(); ++it2) {
-        node_address_active_link_allocations_map[partner_address.val].push_back(*it2);
       }
       node_address_next_link_allocations_map[partner_address.val].clear();
     }
