@@ -49,7 +49,7 @@ network topology_dumbell_MM_three_end_nodes
         }
         Repeater2: QNode {
             address = 8;
-            node_type = "Repeater";
+            node_type = "EndNode";
             @display("i=RTR;p=132,36");
         }
 
