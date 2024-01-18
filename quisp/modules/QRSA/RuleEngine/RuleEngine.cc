@@ -483,6 +483,7 @@ void RuleEngine::removeRuleSetIdFromActiveLinkAllocationPolicy(unsigned long rul
       for (auto it2 = node_address_active_link_allocations_map[partner_address.val].begin(); it2 != node_address_active_link_allocations_map[partner_address.val].end();) {
         if (*it2 == ruleset_id) {
           node_address_active_link_allocations_map[partner_address.val].erase(it2);
+          break;
         } else {
           ++it2;
         }
@@ -502,25 +503,31 @@ void RuleEngine::sendLinkAllocationUpdateMessages() {
 
   for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
     for (auto partner_address : it->partners) {
-      std::vector<int> active_link_allocations;
+      std::set<int> active_link_allocations;
       if (node_address_active_link_allocations_map.find(partner_address.val) != node_address_active_link_allocations_map.end()) {
         for (auto active_link_allocation : node_address_active_link_allocations_map[partner_address.val]) {
-          active_link_allocations.push_back(active_link_allocation);
+          active_link_allocations.insert(active_link_allocation);
         }
       }
 
-      std::vector<int> next_link_allocations;
+      std::set<int> next_link_allocations;
       if (node_address_next_link_allocations_map.find(partner_address.val) != node_address_next_link_allocations_map.end()) {
         for (auto next_link_allocation : node_address_next_link_allocations_map[partner_address.val]) {
-          next_link_allocations.push_back(next_link_allocation);
+          next_link_allocations.insert(next_link_allocation);
         }
       }
 
       if (it->is_active && std::find(active_link_allocations.begin(), active_link_allocations.end(), it->ruleset.id) == active_link_allocations.end()) {
-        node_address_active_link_allocations_map[partner_address.val].push_back(it->ruleset.id);
+        auto ruleset_id = it->ruleset.id;
+        node_address_active_link_allocations_map[partner_address.val].insert(ruleset_id);
       }
+
       if (!it->is_active && std::find(next_link_allocations.begin(), next_link_allocations.end(), it->ruleset.id) == next_link_allocations.end()) {
-        node_address_next_link_allocations_map[partner_address.val].push_back(it->ruleset.id);
+        auto ruleset_id = it->ruleset.id;
+        auto it_ = active_link_allocations.find(ruleset_id);
+        if (it_ == active_link_allocations.end()) {
+          node_address_next_link_allocations_map[partner_address.val].insert(ruleset_id);
+        }
       }
     }
   }
@@ -557,13 +564,13 @@ void RuleEngine::storeInfoAboutIncomingLinkAllocationUpdateMessage(LinkAllocatio
   auto incoming_active_link_allocations_count = msg->getActiveLinkAllocationCount();
   for (auto i = 0; i < incoming_active_link_allocations_count; i++) {
     auto incoming_active_link_allocation = msg->getActiveLinkAllocations(i);
-    node_address_incoming_active_link_allocations_map[src_addr].push_back(incoming_active_link_allocation);
+    node_address_incoming_active_link_allocations_map[src_addr].insert(incoming_active_link_allocation);
   }
 
   auto incoming_next_link_allocations_count = msg->getNextLinkAllocationCount();
   for (auto i = 0; i < incoming_next_link_allocations_count; i++) {
     auto incoming_next_link_allocation = msg->getNextLinkAllocations(i);
-    node_address_incoming_next_link_allocations_map[src_addr].push_back(incoming_next_link_allocation);
+    node_address_incoming_next_link_allocations_map[src_addr].insert(incoming_next_link_allocation);
   }
   node_address_lau_received_map[src_addr] = true;
 }
@@ -574,7 +581,7 @@ void RuleEngine::negotiateNextLinkAllocationPolicy(int src_addr) {
   if (incoming_random_number > random_number) {
     node_address_next_link_allocations_map[src_addr].clear();
     for (auto it = node_address_incoming_next_link_allocations_map[src_addr].begin(); it != node_address_incoming_next_link_allocations_map[src_addr].end(); ++it) {
-      node_address_next_link_allocations_map[src_addr].push_back(*it);
+      node_address_next_link_allocations_map[src_addr].insert(*it);
     }
   }
   node_address_barrier_sent_map[src_addr] = false;
@@ -720,16 +727,32 @@ void RuleEngine::sendConnectionTeardownNotifier(std::vector<unsigned long> rules
   send(pkt, "RouterPort$o");
 }
 
+void RuleEngine::erase(std::list<unsigned long> &v, int key) {
+  auto it = v.begin();
+  while (it != v.end()) {
+    if (*it == key) {
+      it = v.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
 void RuleEngine::executeAllRuleSets() {
   for (auto it = runtimes.begin(); it != runtimes.end(); ++it) {
     for (auto partner_address : it->partners) {
       std::vector<unsigned long> next_link_allocations;
       if (node_address_next_link_allocations_map.find(partner_address.val) != node_address_next_link_allocations_map.end()) {
-        for (auto next_link_allocation : node_address_next_link_allocations_map[partner_address.val]) {
-          node_address_active_link_allocations_map[partner_address.val].push_back(next_link_allocation);
+        auto it = node_address_next_link_allocations_map[partner_address.val].begin();
+        while (it != node_address_next_link_allocations_map[partner_address.val].end()) {
+          node_address_active_link_allocations_map[partner_address.val].insert(*it);
+
+          it = node_address_next_link_allocations_map[partner_address.val].erase(it);
+          if (it != node_address_next_link_allocations_map[partner_address.val].end()) {
+            ++it;
+          }
         }
       }
-      node_address_next_link_allocations_map[partner_address.val].clear();
     }
   }
 

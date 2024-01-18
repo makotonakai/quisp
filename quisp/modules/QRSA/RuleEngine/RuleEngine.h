@@ -118,6 +118,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void schedulePhotonEmission(QNIC_type qnic_type, int qnic_index, messages::BSMTimingNotification *notification);
   void scheduleMSMPhotonEmission(QNIC_type qnic_type, int qnic_index, messages::EPPSTimingNotification *notification);
   void handleStopEmitting(messages::StopEmitting *stop_emit);
+  void erase(std::list<unsigned long> &v, int key);
 
   utils::ComponentProvider provider;
   std::unique_ptr<IQNicStore> qnic_store = nullptr;
@@ -125,10 +126,10 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   runtime::RuntimeManager runtimes;
   std::unordered_map<std::pair<QNIC_type, int>, messages::EmitPhotonRequest *> emit_photon_timer_map;
   std::unordered_map<std::pair<QNIC_type, int>, std::vector<int>> emitted_photon_order_map;
-  std::map<int, std::vector<unsigned long>> node_address_incoming_active_link_allocations_map;
-  std::map<int, std::vector<unsigned long>> node_address_active_link_allocations_map;
-  std::map<int, std::vector<unsigned long>> node_address_incoming_next_link_allocations_map;
-  std::map<int, std::list<unsigned long>> node_address_next_link_allocations_map;
+  std::map<int, std::set<unsigned long>> node_address_incoming_active_link_allocations_map;
+  std::map<int, std::set<unsigned long>> node_address_active_link_allocations_map;
+  std::map<int, std::set<unsigned long>> node_address_incoming_next_link_allocations_map;
+  std::map<int, std::set<unsigned long>> node_address_next_link_allocations_map;
   std::map<int, int> node_address_incoming_random_number_map;
   std::map<int, int> node_address_random_number_map;
   std::map<int, bool> node_address_lau_sent_map;
