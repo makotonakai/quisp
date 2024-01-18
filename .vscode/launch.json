@@ -25,7 +25,7 @@
                 "-n",
                 "${workspaceFolder}/quisp/networks/:${workspaceFolder}/quisp/modules:${workspaceFolder}/quisp/channels",
                 "-c",
-                "NoErrorMIM"
+                "Dumbell_MM_3_Nodes"
             ],
             "cwd": "${workspaceFolder}/quisp"
         },
