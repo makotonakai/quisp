@@ -8,9 +8,23 @@ packet LinkAllocationUpdateMessage extends Header {
   int random_number @setter(setRandomNumber) @getter(getRandomNumber);
 }
 
+packet RejectLinkAllocationUpdateMessage extends Header {}
+
 packet LinkAllocationUpdateNotifier extends Header {
   unsigned long ruleset_id @setter(setRuleSetId) @getter(getRuleSetId);
   int stack_of_NeighboringQNodeIndices[];
+}
+
+packet LinkAllocationNotifier extends Header {
+  unsigned long ruleset_id @setter(setRuleSetId) @getter(getRuleSetId);
+  int sequence_number @setter(setSequenceNumber) @getter(getSequenceNumber);
+  int nanoseconds @setter(setNanoSeconds) @getter(getNanoSeconds);
+}
+
+packet LinkReleaseNotifier extends Header {
+  unsigned long ruleset_id @setter(setRuleSetId) @getter(getRuleSetId);
+  int sequence_number @setter(setSequenceNumber) @getter(getSequenceNumber);
+  long nanoseconds @setter(setNanoSeconds) @getter(getNanoSeconds);
 }
 
 
