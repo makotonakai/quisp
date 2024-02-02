@@ -15,16 +15,3 @@ packet LinkAllocationUpdateNotifier extends Header {
   int stack_of_NeighboringQNodeIndices[];
 }
 
-packet LinkAllocationNotifier extends Header {
-  unsigned long ruleset_id @setter(setRuleSetId) @getter(getRuleSetId);
-  int sequence_number @setter(setSequenceNumber) @getter(getSequenceNumber);
-  int nanoseconds @setter(setNanoSeconds) @getter(getNanoSeconds);
-}
-
-packet LinkReleaseNotifier extends Header {
-  unsigned long ruleset_id @setter(setRuleSetId) @getter(getRuleSetId);
-  int sequence_number @setter(setSequenceNumber) @getter(getSequenceNumber);
-  long nanoseconds @setter(setNanoSeconds) @getter(getNanoSeconds);
-}
-
-
