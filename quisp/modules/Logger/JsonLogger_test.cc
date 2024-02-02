@@ -78,11 +78,9 @@ TEST_F(JsonLoggerTest, ConnRejectTest) {
 
 TEST_F(JsonLoggerTest, ConnTeardownTest) {
   auto tea = new ConnectionTeardownMessage();
-  tea->setActual_destAddr(2);
-  tea->setActual_srcAddr(1);
-  tea->setLAU_destAddr_left(2);
-  tea->setLAU_destAddr_right(1);
-  tea->setRuleSet_id(1);
+  tea->setLeftNodeAddr(2);
+  tea->setRightNodeAddr(1);
+  tea->setRuleSetId(1);
   logger->setQNodeAddress(7);
   logger->logPacket("test", tea);
   EXPECT_EQ(log_stream.str(),
