@@ -33,7 +33,6 @@ void RuntimeManager::exec() {
       it->is_active = true;
     }
     it->exec();
-    std::cout << it->return_code << std::endl;
     if (it->is_active && it->is_terminated) {
       terminated_ruleset_id_list.push_back(ruleset_id);
       it->is_active = false;
