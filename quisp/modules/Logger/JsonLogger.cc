@@ -186,28 +186,6 @@ std::string JsonLogger::format(omnetpp::cMessage const* const msg) {
     return os.str();
   }
 
-  if (auto* req = dynamic_cast<const quisp::messages::LinkAllocationNotifier*>(msg)) {
-    std::stringstream os;
-    os << "\"msg_type\": \"LinkAllocationNotifier\"";
-    os << ", \"dest_addr\": " << req->getDestAddr();
-    os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"ruleset_id\": " << req->getRuleSetId();
-    os << ", \"sequence_number\": " << req->getSequenceNumber();
-    os << ", \"nanoseconds\": " << req->getNanoSeconds();
-    return os.str();
-  }
-
-  if (auto* req = dynamic_cast<const quisp::messages::LinkReleaseNotifier*>(msg)) {
-    std::stringstream os;
-    os << "\"msg_type\": \"LinkReleaseNotifier\"";
-    os << ", \"dest_addr\": " << req->getDestAddr();
-    os << ", \"src_addr\": " << req->getSrcAddr();
-    os << ", \"ruleset_id\": " << req->getRuleSetId();
-    os << ", \"sequence_number\": " << req->getSequenceNumber();
-    os << ", \"nanoseconds\": " << req->getNanoSeconds();
-    return os.str();
-  }
-
   return "\"msg\": \"unknown class (" + msg->getFullPath() + ")\"";
 }
 
