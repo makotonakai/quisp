@@ -91,6 +91,7 @@ class RuleEngine : public IRuleEngine, public Logger::LoggerBase {
   void sendLinkAllocationUpdateMessages();
   void storeInfoAboutIncomingLinkAllocationUpdateMessage(messages::LinkAllocationUpdateMessage *msg);
   void negotiateNextLinkAllocationPolicy(int src_addr);
+  void sendRejectLinkAllocationUpdateMessage(int src_addr);
   void sendBarrierMessage(int src_addr);
   void waitForBellPairGeneration(int src_addr);
   void keepWaitingForBellPairGeneration(messages::WaitMessage *msg);

@@ -5,6 +5,7 @@
 #include "RuleEngine.h"
 #include <unistd.h>
 #include <cassert>
+#include <chrono>
 #include <cstddef>
 #include <fstream>
 #include <iostream>
@@ -12,6 +13,7 @@
 #include <map>
 #include <memory>
 #include <ostream>
+#include <ratio>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -557,6 +559,13 @@ void RuleEngine::sendLinkAllocationUpdateMessages() {
   }
 }
 
+void RuleEngine::sendRejectLinkAllocationUpdateMessage(int src_addr) {
+  RejectLinkAllocationUpdateMessage *pkt = new RejectLinkAllocationUpdateMessage("RejectLinkAllocationUpdate");
+  pkt->setSrcAddr(parentAddress);
+  pkt->setDestAddr(src_addr);
+  send(pkt, "RouterPort$o");
+}
+
 void RuleEngine::storeInfoAboutIncomingLinkAllocationUpdateMessage(LinkAllocationUpdateMessage *msg) {
   auto src_addr = msg->getSrcAddr();
   node_address_incoming_random_number_map[src_addr] = msg->getRandomNumber();
@@ -578,14 +587,16 @@ void RuleEngine::storeInfoAboutIncomingLinkAllocationUpdateMessage(LinkAllocatio
 void RuleEngine::negotiateNextLinkAllocationPolicy(int src_addr) {
   auto incoming_random_number = node_address_incoming_random_number_map[src_addr];
   auto random_number = node_address_random_number_map[src_addr];
-  if (incoming_random_number > random_number) {
+  if (incoming_random_number == random_number) {
+    sendRejectLinkAllocationUpdateMessage(src_addr);
+  } else if (incoming_random_number > random_number) {
     node_address_next_link_allocations_map[src_addr].clear();
     for (auto it = node_address_incoming_next_link_allocations_map[src_addr].begin(); it != node_address_incoming_next_link_allocations_map[src_addr].end(); ++it) {
       node_address_next_link_allocations_map[src_addr].insert(*it);
     }
+    node_address_barrier_sent_map[src_addr] = false;
+    node_address_barrier_received_map[src_addr] = false;
   }
-  node_address_barrier_sent_map[src_addr] = false;
-  node_address_barrier_received_map[src_addr] = false;
 }
 
 void RuleEngine::sendBarrierMessage(int src_addr) {
@@ -664,7 +675,7 @@ void RuleEngine::allocateBellPairs(int qnic_type, int qnic_index, int first_sequ
         auto qubit_record = sequence_number_qubit_record.second;
         if (!qubit_record->isAllocated()) {
           qubit_record->setAllocated(true);
-          auto index = number * runtime_indices.size() / bell_pair_num;
+          auto index = number % runtime_indices.size();
           auto runtime_index = runtime_indices[index];
           runtimes.at(runtime_index).assignQubitToRuleSet(partner_addr, qubit_record);
           sequence_number_ruleset_id_map[sequence_number] = runtimes.at(runtime_index).ruleset.id;
