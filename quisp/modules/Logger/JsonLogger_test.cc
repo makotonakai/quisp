@@ -85,14 +85,13 @@ TEST_F(JsonLoggerTest, ConnTeardownTest) {
   logger->logPacket("test", tea);
   EXPECT_EQ(log_stream.str(),
             "{\"simtime\": 0, \"event_type\": \"test\", \"address\": \"7\", \"msg_type\": \"ConnectionTeardownMessage\", "
-            "\"actual_dest_addr\": 2, \"actual_src_addr\": 1, \"LAU_destAddr_left\": 2, \"LAU_destAddr_right\": 1, "
-            "\"ruleset_id\": 1}\n");
+            "\"left_node_addr\": 2, \"right_node_addr\": 1, \"ruleset_id\": 1}\n");
 }
 
 TEST_F(JsonLoggerTest, UnknownPacket) {
   auto* packet = new cMessage();
   logger->logPacket("test", packet);
-  EXPECT_EQ(log_stream.str(), "{\"simtime\": 0, \"event_type\": \"test\", \"address\": \"-1\", \"msg\": \"unknown class\": \"globalOwningContext.\"}\n");
+  EXPECT_EQ(log_stream.str(), "{\"simtime\": 0, \"event_type\": \"test\", \"address\": \"-1\", \"msg\": \"unknown class (globalOwningContext.)\"}\n");
 }
 
 TEST_F(JsonLoggerTest, LogBellPairTest) {
